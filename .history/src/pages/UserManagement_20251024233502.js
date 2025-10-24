@@ -14,12 +14,9 @@ const UserManagement = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
+
     const [allUsers, setAllUsers] = useState([]);
     const [isArchivedUnlocked, setIsArchivedUnlocked] = useState(false);
-
-    // --- NEW: State for password modal ---
-    const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [passwordInput, setPasswordInput] = useState('');
 
     const [columnVisibility, setColumnVisibility] = useState({
         userId: true,
@@ -107,38 +104,28 @@ const UserManagement = () => {
         };
     }, []);
 
-    // --- MODIFIED: Opens the modal instead of a prompt ---
-    const handleViewArchived = () => {
+    const handleViewArchived = async () => {
         if (isArchivedUnlocked) {
             setViewFilter('archived');
             return;
         }
-        setShowPasswordModal(true);
-    };
 
-    // --- NEW: Handles password submission and re-authentication ---
-    const handlePasswordSubmit = async () => {
-        if (!passwordInput) {
-            alert('Please enter a password.');
-            return;
-        }
+        const password = prompt('For security, please re-enter your password to view archived users:');
+        if (!password) return;
 
         const auth = getAuth();
         const user = auth.currentUser;
 
         if (user) {
             try {
-                const credential = EmailAuthProvider.credential(user.email, passwordInput);
+                const credential = EmailAuthProvider.credential(user.email, password);
                 await reauthenticateWithCredential(user, credential);
                 alert('Verification successful. Accessing archives.');
                 setIsArchivedUnlocked(true);
                 setViewFilter('archived');
-                setShowPasswordModal(false);
             } catch (error) {
                 console.error("Re-authentication failed:", error);
                 alert('Incorrect password. Access to archives denied.');
-            } finally {
-                setPasswordInput('');
             }
         }
     };
@@ -210,6 +197,7 @@ const UserManagement = () => {
         }).length;
     }, [columnVisibility, viewFilter]);
 
+    // 📊 User Type Pie Chart Data
     const userTypeCounts = [
         { name: 'Tourist', value: allUsers.filter(u => u.userType === 'Tourist').length },
         { name: 'Student', value: allUsers.filter(u => u.userType === 'Student').length },
@@ -222,29 +210,6 @@ const UserManagement = () => {
     return (
         <div className="dashboard-wrapper">
             <Sidebar />
-
-            {/* --- NEW: Password Modal JSX --- */}
-            {showPasswordModal && (
-                <div className="password-modal-overlay">
-                    <div className="password-modal">
-                        <h4>Enter Password</h4>
-                        <p>To view archives, please re-enter your password.</p>
-                        <input
-                            type="password"
-                            value={passwordInput}
-                            onChange={(e) => setPasswordInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-                            className="password-modal-input"
-                            placeholder="••••••••••"
-                        />
-                        <div className="modal-buttons">
-                            <button className="modal-btn-cancel" onClick={() => setShowPasswordModal(false)}>Cancel</button>
-                            <button className="modal-btn-submit" onClick={handlePasswordSubmit}>Submit</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <main className="dashboard-main">
                 <h2>User Management</h2>
                 <div className="main-content">
@@ -261,6 +226,7 @@ const UserManagement = () => {
                         </div>
                     </div>
 
+                    {/* 🥧 User Type Pie Chart Section */}
                     <div className="user-type-chart">
                         <h3>User Type Distribution</h3>
                         {loading ? (

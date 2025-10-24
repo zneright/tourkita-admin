@@ -73,7 +73,7 @@ const LoginPage = () => {
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                     autoComplete="email"
-                                    placeholder="Enter email address"
+                                    placeholder="Enter "
                                 />
                             </div>
                         </div>

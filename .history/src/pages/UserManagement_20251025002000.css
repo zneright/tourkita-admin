@@ -337,6 +337,7 @@
     background-color: #f0f0f0;
 }
 
+/* --- Password Modal Styles --- */
 .password-modal-overlay {
     position: fixed;
     top: 0;
