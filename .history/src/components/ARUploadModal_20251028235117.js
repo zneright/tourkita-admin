@@ -18,6 +18,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
         physicalWidth: 0.15,
     });
 
+    // State to hold current file URLs in the component for easy deletion/reference
     const [currentFileUrls, setCurrentFileUrls] = useState({
         imageUrl: null,
         modelUrl: null,
@@ -38,6 +39,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                 physicalWidth: assetToEdit.physicalWidth || 0.15,
                 image: null, model: null, videoFile: null,
             });
+            // Initialize current file URLs from assetToEdit (audioUrl is removed)
             setCurrentFileUrls({
                 imageUrl: assetToEdit.imageUrl || null,
                 modelUrl: assetToEdit.modelUrl || null,
@@ -64,22 +66,29 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
 
     const handleInputChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
+    // MODIFIED: handleFileChange (audio removed)
     const handleFileChange = (e) => {
         const { name, files } = e.target;
         setFormData(p => ({ ...p, [name]: files[0] }));
 
+        // image, model, videoUrl
         const urlKey = name.replace('File', '') + 'Url';
         setCurrentFileUrls(p => ({ ...p, [urlKey]: null }));
     };
 
+    // MODIFIED: handleFileDelete function (audio removed)
     const handleFileDelete = (fileUrlKey, fileInputName) => {
         if (!window.confirm(`Are you sure you want to delete the current ${fileUrlKey.replace('Url', '')} file? This action is permanent and will be saved when you click "Save Changes".`)) {
             return;
         }
 
+        // 1. Clear the URL from the component's tracking state (currentFileUrls)
         setCurrentFileUrls(p => ({ ...p, [fileUrlKey]: null }));
+
+        // 2. Clear the file from the formData state (in case a new one was selected and then deleted)
         setFormData(p => ({ ...p, [fileInputName]: null }));
 
+        // 3. Clear the file input element itself (to reset the form visually)
         const input = document.getElementsByName(fileInputName)[0];
         if (input) input.value = '';
     };
@@ -105,6 +114,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
         setUploadProgress(0);
         setStatusMessage("Starting operation...");
 
+        // MODIFIED: oldFileUrls (audio removed)
         const oldFileUrls = {
             image: isEditMode ? assetToEdit.imageUrl : null,
             model: isEditMode ? assetToEdit.modelUrl : null,
@@ -113,6 +123,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
 
         try {
             setStatusMessage("Uploading new files...");
+            // MODIFIED: Promise.all (audio removed)
             const [newImageUrl, newModelUrl, newVideoUrl] = await Promise.all([
                 uploadToFirebaseStorage(formData.image, 'models/markers'),
                 uploadToFirebaseStorage(formData.model, 'models/models'),
@@ -121,6 +132,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
 
             setUploadProgress(100);
 
+            // MODIFIED: finalData (audio removed)
             const finalData = {
                 category: formData.category,
                 name: formData.name,

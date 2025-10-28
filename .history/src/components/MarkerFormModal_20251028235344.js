@@ -12,6 +12,8 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
     const [previewImage, setPreviewImage] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
     const [saving, setSaving] = useState(false);
+    // Removed: const [previewAudio, setPreviewAudio] = useState('');
+    // Removed: const [uploadingAudio, setUploadingAudio] = useState(false);
     const [errors, setErrors] = useState({});
     const [popup, setPopup] = useState({ type: '', message: '' });
     const modalRef = useRef(null);
@@ -19,8 +21,9 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
     useEffect(() => {
         if (isEditing) {
             if (typeof form.image === 'string') setPreviewImage(form.image);
+            // Removed: if (typeof form.audio === 'string') setPreviewAudio(form.audio);
         }
-    }, [form.image, isEditing]);
+    }, [form.image, isEditing]); // Removed form.audio dependency
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -59,6 +62,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
         handleFileUpload(e.target.files[0], 'images', setUploadingImage, setPreviewImage, 'image');
     };
 
+    // Removed: handleAudioChange function
 
     const handleSubmit = async () => {
         const newErrors = {};
@@ -84,7 +88,10 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                 id: form.id || Date.now(),
                 categoryOption: form.category,
                 customCategory: form.customCategory || '',
+                // Removed: audio: form.audio || '',
             };
+
+            // Clean up the object to remove the now-obsolete 'audio' key before saving
             delete markerData.audio;
 
             const docRef = isEditing
@@ -125,6 +132,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                             <textarea id="description" name="description" value={form.description} onChange={handleInputChange} rows={4} placeholder="Write a short description..." />
                         </div>
 
+                        {/* --- Image Upload & URL Section --- */
                         <div className="marker-form full-width" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="field-group">
                                 <label htmlFor="image">Upload Image</label>

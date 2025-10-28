@@ -18,6 +18,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
         physicalWidth: 0.15,
     });
 
+    // State to hold current file URLs in the component for easy deletion/reference
     const [currentFileUrls, setCurrentFileUrls] = useState({
         imageUrl: null,
         modelUrl: null,
@@ -38,6 +39,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                 physicalWidth: assetToEdit.physicalWidth || 0.15,
                 image: null, model: null, videoFile: null,
             });
+            // Initialize current file URLs from assetToEdit (audioUrl is removed)
             setCurrentFileUrls({
                 imageUrl: assetToEdit.imageUrl || null,
                 modelUrl: assetToEdit.modelUrl || null,
@@ -64,14 +66,17 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
 
     const handleInputChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
+    // MODIFIED: handleFileChange (audio removed)
     const handleFileChange = (e) => {
         const { name, files } = e.target;
         setFormData(p => ({ ...p, [name]: files[0] }));
 
+        // image, model, videoUrl
         const urlKey = name.replace('File', '') + 'Url';
         setCurrentFileUrls(p => ({ ...p, [urlKey]: null }));
     };
 
+    // MODIFIED: handleFileDelete function (audio removed)
     const handleFileDelete = (fileUrlKey, fileInputName) => {
         if (!window.confirm(`Are you sure you want to delete the current ${fileUrlKey.replace('Url', '')} file? This action is permanent and will be saved when you click "Save Changes".`)) {
             return;

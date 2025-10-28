@@ -109,7 +109,7 @@
 
 
 .preview-image,
-.preview-video {
+.preview-video, {
     width: 100%;
     max-width: 100%;
     height: auto;
@@ -117,4 +117,9 @@
     background-color: #f9f9f9;
     display: block;
     margin-top: 10px;
+}
+
+.preview-audio {
+    height: 50px;
+    min-height: 50px;
 }

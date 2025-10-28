@@ -19,7 +19,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
     useEffect(() => {
         if (isEditing) {
             if (typeof form.image === 'string') setPreviewImage(form.image);
-        }
+                 }
     }, [form.image, isEditing]);
 
     const handleInputChange = (e) => {

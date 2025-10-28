@@ -15,13 +15,16 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
         image: null,
         model: null,
         videoFile: null,
+        audioFile: null,
         physicalWidth: 0.15,
     });
 
+    // ⭐ NEW: State to hold current file URLs in the component for easy deletion/reference
     const [currentFileUrls, setCurrentFileUrls] = useState({
         imageUrl: null,
         modelUrl: null,
         videoUrl: null,
+        audioUrl: null,
     });
 
     const [isProcessing, setIsProcessing] = useState(false);
@@ -36,12 +39,14 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                 name: assetToEdit.name || "",
                 description: assetToEdit.description || "",
                 physicalWidth: assetToEdit.physicalWidth || 0.15,
-                image: null, model: null, videoFile: null,
+                image: null, model: null, videoFile: null, audioFile: null,
             });
+            // ⭐ NEW: Initialize current file URLs from assetToEdit
             setCurrentFileUrls({
                 imageUrl: assetToEdit.imageUrl || null,
                 modelUrl: assetToEdit.modelUrl || null,
                 videoUrl: assetToEdit.videoUrl || null,
+                audioUrl: assetToEdit.audioUrl || null,
             });
         }
     }, [assetToEdit, isEditMode]);
@@ -64,22 +69,31 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
 
     const handleInputChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
+    // ⭐ MODIFIED: handleFileChange to clear the current file URL if a new one is selected
     const handleFileChange = (e) => {
         const { name, files } = e.target;
         setFormData(p => ({ ...p, [name]: files[0] }));
 
-        const urlKey = name.replace('File', '') + 'Url';
+        // When a new file is chosen, we temporarily clear the old URL from currentFileUrls
+        // to prevent it from being used in finalData unless explicitly uploaded.
+        // The old URL is still available in assetToEdit for the cleanup step.
+        const urlKey = name.replace('File', '') + 'Url'; // image, model, videoUrl, audioUrl
         setCurrentFileUrls(p => ({ ...p, [urlKey]: null }));
     };
 
+    // ⭐ NEW: handleFileDelete function
     const handleFileDelete = (fileUrlKey, fileInputName) => {
         if (!window.confirm(`Are you sure you want to delete the current ${fileUrlKey.replace('Url', '')} file? This action is permanent and will be saved when you click "Save Changes".`)) {
             return;
         }
 
+        // 1. Clear the URL from the component's tracking state (currentFileUrls)
         setCurrentFileUrls(p => ({ ...p, [fileUrlKey]: null }));
+
+        // 2. Clear the file from the formData state (in case a new one was selected and then deleted)
         setFormData(p => ({ ...p, [fileInputName]: null }));
 
+        // 3. Clear the file input element itself (to reset the form visually)
         const input = document.getElementsByName(fileInputName)[0];
         if (input) input.value = '';
     };
@@ -109,14 +123,16 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
             image: isEditMode ? assetToEdit.imageUrl : null,
             model: isEditMode ? assetToEdit.modelUrl : null,
             video: isEditMode ? assetToEdit.videoUrl : null,
+            audio: isEditMode ? assetToEdit.audioUrl : null,
         };
 
         try {
             setStatusMessage("Uploading new files...");
-            const [newImageUrl, newModelUrl, newVideoUrl] = await Promise.all([
+            const [newImageUrl, newModelUrl, newVideoUrl, newAudioUrl] = await Promise.all([
                 uploadToFirebaseStorage(formData.image, 'models/markers'),
                 uploadToFirebaseStorage(formData.model, 'models/models'),
                 uploadToFirebaseStorage(formData.videoFile, 'models/video'),
+                uploadToFirebaseStorage(formData.audioFile, 'models/audio')
             ]);
 
             setUploadProgress(100);
@@ -128,9 +144,12 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                 locationName: formData.location,
                 physicalWidth: Number(formData.physicalWidth),
 
+                // ⭐ MODIFIED: Check for new upload first, then currentFileUrls state
+                // If a file was deleted (currentFileUrls[key] is null), the key will be null.
                 imageUrl: newImageUrl || currentFileUrls.imageUrl,
                 modelUrl: newModelUrl || currentFileUrls.modelUrl,
                 videoUrl: newVideoUrl || currentFileUrls.videoUrl,
+                audioUrl: newAudioUrl || currentFileUrls.audioUrl,
             };
 
             setStatusMessage("Updating database records...");
@@ -138,7 +157,9 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
             if (!selectedMarker) throw new Error("Selected location not found in markers list.");
             const markerRef = doc(db, "markers", String(selectedMarker.id));
 
+            // Prepare update object to remove fields if value is null
             const updateArTargetData = { ...finalData };
+            // Ensure any null values delete the field in Firestore upon update
             Object.keys(updateArTargetData).forEach(key => {
                 if (updateArTargetData[key] === null) {
                     updateArTargetData[key] = null;
@@ -168,22 +189,27 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                         modelUrl: finalData.modelUrl,
                     };
                 } else {
+                    // If model is deleted, also remove it from marker's artifacts
                     artifactUpdate[`artifacts.${targetRef.id}`] = null;
                 }
                 await updateDoc(markerRef, artifactUpdate);
             }
 
             setStatusMessage("Cleaning up old files...");
+            // ⭐ MODIFIED: Clean up old file if a NEW file was uploaded OR if the URL was deleted
             const filesToClean = [
                 (newImageUrl && oldFileUrls.image),
                 (newModelUrl && oldFileUrls.model),
                 (newVideoUrl && oldFileUrls.video),
+                (newAudioUrl && oldFileUrls.audio)
             ];
 
+            // Add files deleted via the button to the cleanup list
             if (isEditMode) {
                 if (assetToEdit.imageUrl && finalData.imageUrl === null) filesToClean.push(assetToEdit.imageUrl);
                 if (assetToEdit.modelUrl && finalData.modelUrl === null) filesToClean.push(assetToEdit.modelUrl);
                 if (assetToEdit.videoUrl && finalData.videoUrl === null) filesToClean.push(assetToEdit.videoUrl);
+                if (assetToEdit.audioUrl && finalData.audioUrl === null) filesToClean.push(assetToEdit.audioUrl);
             }
 
             const uniqueFilesToClean = filesToClean.filter(Boolean);

@@ -18,6 +18,7 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
         physicalWidth: 0.15,
     });
 
+    // State to hold current file URLs in the component for easy deletion/reference
     const [currentFileUrls, setCurrentFileUrls] = useState({
         imageUrl: null,
         modelUrl: null,

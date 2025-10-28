@@ -52,6 +52,8 @@ const ARPreviewModal = ({ asset, onClose }) => {
                         </div>
                     )}
 
+                    {/* The audio rendering block was here and has been removed. */}
+
                 </div>
             </div>
         </div>

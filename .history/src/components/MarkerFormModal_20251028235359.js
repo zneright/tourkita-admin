@@ -12,6 +12,8 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
     const [previewImage, setPreviewImage] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
     const [saving, setSaving] = useState(false);
+    // Removed: const [previewAudio, setPreviewAudio] = useState('');
+    // Removed: const [uploadingAudio, setUploadingAudio] = useState(false);
     const [errors, setErrors] = useState({});
     const [popup, setPopup] = useState({ type: '', message: '' });
     const modalRef = useRef(null);
@@ -19,8 +21,9 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
     useEffect(() => {
         if (isEditing) {
             if (typeof form.image === 'string') setPreviewImage(form.image);
+            // Removed: if (typeof form.audio === 'string') setPreviewAudio(form.audio);
         }
-    }, [form.image, isEditing]);
+    }, [form.image, isEditing]); // Removed form.audio dependency
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;

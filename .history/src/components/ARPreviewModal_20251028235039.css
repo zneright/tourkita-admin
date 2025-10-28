@@ -118,3 +118,8 @@
     display: block;
     margin-top: 10px;
 }
+
+.preview-audio {
+    height: 50px;
+    min-height: 50px;
+}
