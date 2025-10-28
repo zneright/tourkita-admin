@@ -48,6 +48,8 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
         setImageFile(null);
     };
 
+
+
     useEffect(() => {
         const fetchMarkers = async () => {
             setLoadingLocations(true);
@@ -67,49 +69,36 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
 
         if (isOpen) fetchMarkers();
     }, [isOpen]);
-    const formatTime12Hour = (time24) => {
-        if (!time24) return "";
-        let [hours, minutes] = time24.split(":").map(Number);
-        const ampm = hours >= 12 ? "PM" : "AM";
-        hours = hours % 12 || 12;
-        return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
-    };
-
-    // MODIFIED: Updated handleChange to handle date AND time validation logic.
+    
+    // MODIFIED: Updated handleChange to include time validation logic.
     const handleChange = e => {
         const { name, value, type, checked } = e.target;
         const newValue = type === "checkbox" ? checked : value;
 
-        if (name === "startDate") {
-            setFormData(prev => {
+        setFormData(prev => {
+            // Create a mutable copy of the previous state
+            const updatedForm = { ...prev };
+            updatedForm[name] = newValue;
+    
+            // When start date changes, invalidate end date if necessary
+            if (name === "startDate") {
                 const isEndDateInvalid = prev.recurrence.endDate && new Date(value) >= new Date(prev.recurrence.endDate);
-                return {
-                    ...prev,
-                    startDate: value,
-                    recurrence: {
-                        ...prev.recurrence,
-                        endDate: isEndDateInvalid ? "" : prev.recurrence.endDate,
-                    },
-                };
-            });
-        } else if (name === "eventStartTime") { // ADDED: Logic for start time
-            setFormData(prev => {
-                // If the new start time is after the current end time, clear end time
-                const isEndTimeInvalid = prev.eventEndTime && value > prev.eventEndTime;
-                return {
-                    ...prev,
-                    eventStartTime: value,
-                    eventEndTime: isEndTimeInvalid ? "" : prev.eventEndTime,
-                };
-            });
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: newValue
-            }));
-        }
+                if (isEndDateInvalid) {
+                    updatedForm.recurrence = { ...prev.recurrence, endDate: "" };
+                }
+            }
+    
+            // When start time changes, invalidate end time if necessary
+            if (name === "eventStartTime") {
+                // If the new start time is after the current end time, clear the end time
+                if (prev.eventEndTime && value > prev.eventEndTime) {
+                    updatedForm.eventEndTime = "";
+                }
+            }
+    
+            return updatedForm;
+        });
     };
-
 
     const handleRecurrenceChange = (key, value) => {
         setFormData(prev => ({
@@ -229,6 +218,41 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                 </h2>
 
                 <form onSubmit={handleSubmit} className="marker-form">
+                    {/* --- Other form fields are unchanged --- */}
+
+                    {/* Start Time */}
+                    <div className="field-group">
+                        <label htmlFor="eventStartTime">Start Time:</label>
+                        <input
+                            type="time"
+                            name="eventStartTime"
+                            value={formData.eventStartTime?.slice(0, 5) || ""}
+                            onChange={handleChange}
+                            required
+                            step={300}
+                        />
+                    </div>
+
+                    {/* End Time */}
+                    <div className="field-group">
+                        <label htmlFor="eventEndTime">End Time:</label>
+                        <input
+                            type="time"
+                            name="eventEndTime"
+                            value={formData.eventEndTime?.slice(0, 5) || ""}
+                            onChange={handleChange}
+                            // MODIFIED: Add min attribute and disable if start time isn't set
+                            min={formData.eventStartTime}
+                            disabled={isDisabled || !formData.eventStartTime}
+                            required
+                            step={300}
+                        />
+                    </div>
+
+                    {/* --- Other form fields are unchanged --- */}
+                    
+                    {/* Form JSX from your original code */}
+                    {/* ... (Location, Title, Description, Recurrence, Dates, etc.) */}
                     {/* Location */}
                     <div className="field-group full-width">
                         <label htmlFor="locationId">Select Location:</label>
@@ -246,10 +270,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                 </option>
                             ))}
                         </select>
-
                         <small>Or pick a custom address on the map:</small>
-
-                        {/* Map Location Picker */}
                         <div style={{ pointerEvents: formData.locationId ? "none" : "auto", opacity: formData.locationId ? 0.5 : 1 }}>
                             <LocationPickerMap
                                 onLocationSelect={({ lng, lat, address }) => {
@@ -263,8 +284,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                 }}
                             />
                         </div>
-
-                        {/* Show chosen address */}
                         {formData.customAddress && (
                             <p style={{ marginTop: "5px", fontStyle: "italic", color: "#555" }}>
                                 📍 Selected: {formData.customAddress}
@@ -275,39 +294,19 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                     {/* Title */}
                     <div className="field-group full-width">
                         <label htmlFor="title">Event Title:</label>
-                        <input
-                            type="text"
-                            name="title"
-                            id="title"
-                            value={formData.title}
-                            onChange={handleChange}
-                            disabled={isDisabled}
-                            required
-                        />
+                        <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} disabled={isDisabled} required />
                     </div>
 
                     {/* Description */}
                     <div className="field-group full-width">
                         <label htmlFor="description">Description:</label>
-                        <textarea
-                            name="description"
-                            id="description"
-                            rows={3}
-                            value={formData.description}
-                            onChange={handleChange}
-                            disabled={isDisabled}
-                            required
-                        />
+                        <textarea name="description" id="description" rows={3} value={formData.description} onChange={handleChange} disabled={isDisabled} required />
                     </div>
 
                     {/* Recurrence */}
                     <div className="field-group full-width">
                         <label>Recurrence:</label>
-                        <select
-                            value={formData.recurrence?.frequency || "once"}
-                            onChange={e => handleRecurrenceChange("frequency", e.target.value)}
-                            disabled={isDisabled}
-                        >
+                        <select value={formData.recurrence?.frequency || "once"} onChange={e => handleRecurrenceChange("frequency", e.target.value)} disabled={isDisabled}>
                             <option value="once">Once</option>
                             <option value="weekly">Weekly</option>
                         </select>
@@ -317,16 +316,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                     {formData.recurrence?.frequency === "once" && (
                         <div className="field-group">
                             <label htmlFor="startDate"> Date:</label>
-                            <input
-                                type="date"
-                                name="startDate"
-                                id="startDate"
-                                value={formData.startDate || ""}
-                                onChange={handleChange}
-                                min={today}
-                                disabled={isDisabled}
-                                required
-                            />
+                            <input type="date" name="startDate" id="startDate" value={formData.startDate || ""} onChange={handleChange} min={today} disabled={isDisabled} required />
                         </div>
                     )}
 
@@ -334,63 +324,21 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                         <>
                             <div className="field-group">
                                 <label htmlFor="startDate">Start Date:</label>
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    id="startDate"
-                                    value={formData.startDate || ""}
-                                    onChange={handleChange}
-                                    min={today}
-                                    disabled={isDisabled}
-                                    required
-                                />
+                                <input type="date" name="startDate" id="startDate" value={formData.startDate || ""} onChange={handleChange} min={today} disabled={isDisabled} required />
                             </div>
-
-                            {/* End Date */}
                             <div className="field-group">
                                 <label htmlFor="endDate">End Date:</label>
-                                <input
-                                    type="date"
-                                    name="endDate"
-                                    id="endDate"
-                                    value={formData.recurrence?.endDate || ""}
-                                    onChange={e => handleRecurrenceChange("endDate", e.target.value)}
-                                    min={formData.startDate}
-                                    disabled={isDisabled || !formData.startDate}
-                                    required
-                                />
+                                <input type="date" name="endDate" id="endDate" value={formData.recurrence?.endDate || ""} onChange={e => handleRecurrenceChange("endDate", e.target.value)} min={formData.startDate} disabled={isDisabled || !formData.startDate} required />
                             </div>
-
-                            {/* Days of Week */}
                             <div className="field-group full-width">
                                 <label>Days of Week:</label>
                                 <div className="recurrence-days">
                                     <label className="all-days">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.recurrence?.daysOfWeek?.length === 7}
-                                            onChange={() => {
-                                                if (formData.recurrence?.daysOfWeek?.length === 7) {
-                                                    handleRecurrenceChange("daysOfWeek", []);
-                                                } else {
-                                                    handleRecurrenceChange("daysOfWeek", [
-                                                        "sun", "mon", "tue", "wed", "thu", "fri", "sat"
-                                                    ]);
-                                                }
-                                            }}
-                                            disabled={isDisabled}
-                                        />
-                                        ALL
+                                        <input type="checkbox" checked={formData.recurrence?.daysOfWeek?.length === 7} onChange={() => { if (formData.recurrence?.daysOfWeek?.length === 7) { handleRecurrenceChange("daysOfWeek", []); } else { handleRecurrenceChange("daysOfWeek", ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]); } }} disabled={isDisabled} /> ALL
                                     </label>
                                     {"sun,mon,tue,wed,thu,fri,sat".split(",").map(d => (
                                         <label key={d}>
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.recurrence?.daysOfWeek?.includes(d) || false}
-                                                onChange={() => toggleDayOfWeek(d)}
-                                                disabled={isDisabled}
-                                            />
-                                            {d.toUpperCase()}
+                                            <input type="checkbox" checked={formData.recurrence?.daysOfWeek?.includes(d) || false} onChange={() => toggleDayOfWeek(d)} disabled={isDisabled} /> {d.toUpperCase()}
                                         </label>
                                     ))}
                                 </div>
@@ -398,85 +346,27 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                         </>
                     )}
 
-
-                    <div className="field-group">
-                        <label htmlFor="eventStartTime">Start Time:</label>
-                        <input
-                            type="time"
-                            name="eventStartTime"
-                            value={formData.eventStartTime?.slice(0, 5) || ""}
-                            onChange={handleChange}
-                            required
-                            step={300}
-                        />
-                    </div>
-
-                    <div className="field-group">
-                        <label htmlFor="eventEndTime">End Time:</label>
-                        <input
-                            type="time"
-                            name="eventEndTime"
-                            value={formData.eventEndTime?.slice(0, 5) || ""}
-                            onChange={handleChange}
-                            // MODIFIED: Disable if no start time is selected and set min time
-                            disabled={isDisabled || !formData.eventStartTime}
-                            min={formData.eventStartTime}
-                            required
-                            step={300}
-                        />
-                    </div>
-
                     {/* Public */}
                     <div className="field-group">
                         <label>
-                            <input
-                                type="checkbox"
-                                name="openToPublic"
-                                checked={formData.openToPublic || false}
-                                onChange={handleChange}
-                                disabled={isDisabled}
-                            /> {" "}
-                            Open to the public?
+                            <input type="checkbox" name="openToPublic" checked={formData.openToPublic || false} onChange={handleChange} disabled={isDisabled} /> {" "} Open to the public?
                         </label>
                     </div>
 
                     {/* Image */}
                     <div className="field-group full-width">
                         <label>Upload Image (optional):</label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={e => setImageFile(e.target.files[0])}
-                            disabled={isDisabled}
-                        />
+                        <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} disabled={isDisabled} />
                         <small>Or paste a direct image URL below:</small>
-                        <input
-                            type="url"
-                            name="imageUrl"
-                            value={formData.imageUrl || ""}
-                            onChange={handleChange}
-                            placeholder="https://example.com/image.jpg"
-                            disabled={isDisabled}
-                        />
+                        <input type="url" name="imageUrl" value={formData.imageUrl || ""} onChange={handleChange} placeholder="https://example.com/image.jpg" disabled={isDisabled} />
                     </div>
 
                     {/* Actions */}
                     <div className="form-actions full-width">
                         <button type="submit" className="save-btn" disabled={isDisabled}>
-                            {loadingLocations
-                                ? "Loading..."
-                                : uploading
-                                    ? "Uploading..."
-                                    : submitting
-                                        ? "Saving..."
-                                        : formData?.id
-                                            ? "Update Event"
-                                            : "Save Event"}
+                            {loadingLocations ? "Loading..." : uploading ? "Uploading..." : submitting ? "Saving..." : formData?.id ? "Update Event" : "Save Event"}
                         </button>
-
-                        <button type="button" className="cancel-btn" onClick={onCancel} disabled={isDisabled}>
-                            Cancel
-                        </button>
+                        <button type="button" className="cancel-btn" onClick={onCancel} disabled={isDisabled}>Cancel</button>
                     </div>
                 </form>
             </div>

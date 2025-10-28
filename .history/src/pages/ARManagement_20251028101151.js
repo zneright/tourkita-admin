@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./ARManagement.css";
 import "@google/model-viewer";
-// MODIFIED: Added FiEye and FiEyeOff icons
 import { FiLoader, FiEye, FiEyeOff } from "react-icons/fi";
 import Sidebar from "../components/Sidebar";
 import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc, where } from "firebase/firestore";
@@ -41,7 +40,6 @@ const ArManagement = () => {
     const [arAssets, setArAssets] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deletingId, setDeletingId] = useState(null);
-    const [updatingVisibilityId, setUpdatingVisibilityId] = useState(null);
     const [activeCategory, setActiveCategory] = useState("All");
 
     const fetchMarkers = useCallback(async () => {
@@ -69,17 +67,10 @@ const ArManagement = () => {
     }, [fetchMarkers, fetchArAssets]);
 
     const filteredAssets = useMemo(() => {
-        const visibleAssets = arAssets.filter(asset => asset.isVisible !== false);
-        const hiddenAssets = arAssets.filter(asset => asset.isVisible === false);
-
-        switch (activeCategory) {
-            case "Hidden":
-                return hiddenAssets;
-            case "All":
-                return visibleAssets;
-            default:
-                return visibleAssets.filter(asset => asset.category === activeCategory);
+        if (activeCategory === "All") {
+            return arAssets;
         }
+        return arAssets.filter(asset => asset.category === activeCategory);
     }, [arAssets, activeCategory]);
 
 
@@ -96,33 +87,8 @@ const ArManagement = () => {
     };
 
     const handlePreviewClick = (asset) => {
-        if (asset.isVisible !== false) {
-            setAssetToPreview(asset);
-            setShowPreviewModal(true);
-        }
-    };
-
-    const handleToggleVisibility = async (e, asset) => {
-        e.stopPropagation();
-        setUpdatingVisibilityId(asset.id);
-        const newVisibility = asset.isVisible === false;
-
-        try {
-            const assetRef = doc(db, "arTargets", asset.id);
-            await updateDoc(assetRef, {
-                isVisible: newVisibility,
-            });
-            setArAssets(prevAssets =>
-                prevAssets.map(a =>
-                    a.id === asset.id ? { ...a, isVisible: newVisibility } : a
-                )
-            );
-        } catch (error) {
-            console.error("Error updating visibility:", error);
-            alert("Failed to update visibility. Please try again.");
-        } finally {
-            setUpdatingVisibilityId(null);
-        }
+        setAssetToPreview(asset);
+        setShowPreviewModal(true);
     };
 
     const handleDeleteClick = async (e, asset) => {
@@ -177,8 +143,6 @@ const ArManagement = () => {
                         <button className={`mtab ${activeCategory === "All" ? "active" : ""}`} onClick={() => setActiveCategory("All")}>All</button>
                         <button className={`mtab ${activeCategory === "Building" ? "active" : ""}`} onClick={() => setActiveCategory("Building")}>Buildings</button>
                         <button className={`mtab ${activeCategory === "Relics/Artifacts" ? "active" : ""}`} onClick={() => setActiveCategory("Relics/Artifacts")}>Relics/Artifacts</button>
-
-                        <button className={`mtab ${activeCategory === "Hidden" ? "active" : ""}`} onClick={() => setActiveCategory("Hidden")}>Hidden</button>
                     </div>
                     <button onClick={() => { setAssetToEdit(null); setShowUploadForm(true); }}>Add New AR Asset</button>
                 </div>
@@ -187,12 +151,8 @@ const ArManagement = () => {
                         <SkeletonARList count={8} />
                     ) : (
                         filteredAssets.map((asset) => (
-                            <div
-                                className={`marker-card ${asset.isVisible === false ? 'is-hidden' : ''}`}
-                                key={asset.id}
-                                onClick={() => deletingId !== asset.id && handlePreviewClick(asset)}
-                            >
-                                {(deletingId === asset.id || updatingVisibilityId === asset.id) && (
+                            <div className="marker-card" key={asset.id} onClick={() => deletingId !== asset.id && handlePreviewClick(asset)}>
+                                {deletingId === asset.id && (
                                     <div className="card-loading-overlay"><FiLoader className="spinner" /></div>
                                 )}
                                 <div className="marker-card-image">
@@ -205,19 +165,11 @@ const ArManagement = () => {
                                 <div className="marker-card-content">
                                     <h4>{asset.name || asset.id}</h4>
                                     <p className="asset-category">{asset.category}</p>
+
                                 </div>
                                 <div className="card-actions">
-                                    {/* ADDED: Visibility Toggle Button */}
-                                    <button
-                                        onClick={(ev) => handleToggleVisibility(ev, asset)}
-                                        className="visibility-btn"
-                                        disabled={deletingId === asset.id || updatingVisibilityId === asset.id}
-                                    >
-                                        {asset.isVisible === false ? <FiEye /> : <FiEyeOff />}
-                                        {asset.isVisible === false ? 'Show' : 'Hide'}
-                                    </button>
-                                    <button onClick={(ev) => handleEditClick(ev, asset)} className="edit-btn" disabled={deletingId === asset.id || updatingVisibilityId === asset.id}>Edit</button>
-                                    <button onClick={(ev) => handleDeleteClick(ev, asset)} className="delete-btn" disabled={deletingId === asset.id || updatingVisibilityId === asset.id}>Delete</button>
+                                    <button onClick={(ev) => handleEditClick(ev, asset)} className="edit-btn" disabled={deletingId === asset.id}>Edit</button>
+                                    <button onClick={(ev) => handleDeleteClick(ev, asset)} className="delete-btn" disabled={deletingId === asset.id}>Delete</button>
                                 </div>
                             </div>
                         ))

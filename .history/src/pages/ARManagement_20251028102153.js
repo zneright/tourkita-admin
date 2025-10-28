@@ -69,6 +69,7 @@ const ArManagement = () => {
     }, [fetchMarkers, fetchArAssets]);
 
     const filteredAssets = useMemo(() => {
+        // MODIFIED: This logic now handles the 'Hidden' tab and filters out hidden items from other tabs.
         const visibleAssets = arAssets.filter(asset => asset.isVisible !== false);
         const hiddenAssets = arAssets.filter(asset => asset.isVisible === false);
 

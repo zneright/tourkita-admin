@@ -3,27 +3,23 @@ import './MarkerFormModal.css';
 import OpeningHoursEditor from './OpeningHoursEditor';
 import LocationPickerMap from './LocationPickerMap';
 import { collection, doc, setDoc } from 'firebase/firestore';
-
-import { db, storage } from '../firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db } from '../firebase';
 
 const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
     const [activeTab, setActiveTab] = useState('details');
     const [previewImage, setPreviewImage] = useState('');
-    const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [previewAudio, setPreviewAudio] = useState('');
-    const [uploadingAudio, setUploadingAudio] = useState(false);
+
     const [errors, setErrors] = useState({});
     const [popup, setPopup] = useState({ type: '', message: '' });
     const modalRef = useRef(null);
 
     useEffect(() => {
-        if (isEditing) {
-            if (typeof form.image === 'string') setPreviewImage(form.image);
-            if (typeof form.audio === 'string') setPreviewAudio(form.audio);
+        if (isEditing && typeof form.image === 'string') {
+            setPreviewImage(form.image);
         }
-    }, [form.image, form.audio, isEditing]);
+    }, [form.image, isEditing]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -31,52 +27,83 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
         setForm((prev) => ({ ...prev, [name]: newValue }));
     };
 
-    const handleFileUpload = (file, fileType, setUploadingState, setPreviewState, formField) => {
+    // ADDED: Handler to validate and update opening hours
+    const handleOpeningHoursChange = (updatedHours) => {
+        const validatedHours = JSON.parse(JSON.stringify(updatedHours || {})); // Deep copy
+
+        // Loop through each day to check the times
+        for (const day in validatedHours) {
+            const dayInfo = validatedHours[day];
+
+            // Check only if the day is open and both times are set
+            if (dayInfo.isOpen && dayInfo.open && dayInfo.close) {
+                // If the end time is earlier than or same as the start time, it's invalid
+                if (dayInfo.close <= dayInfo.open) {
+                    // Automatically correct the close time to be the same as the open time.
+                    // This prevents an invalid state and cues the user to pick a later time.
+                    dayInfo.close = dayInfo.open;
+                }
+            }
+        }
+
+        // Update the form state with the validated hours
+        setForm((prev) => ({ ...prev, openingHours: validatedHours }));
+    };
+
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
         if (!file) return;
 
-        setPreviewState(URL.createObjectURL(file));
-        setUploadingState(true);
+        setPreviewImage(URL.createObjectURL(file));
+        setUploading(true);
 
-        const storageRef = ref(storage, `${fileType}/${Date.now()}_${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+        try {
+            const uploadData = new FormData();
+            uploadData.append('file', file);
+            uploadData.append('upload_preset', 'Marker image');
 
-        uploadTask.on(
-            'state_changed',
-            (snapshot) => { /* Optional: handle progress */ },
-            (error) => {
-                console.error(`Error uploading ${fileType}:`, error);
-                alert(`Error uploading ${fileType}.`);
-                setUploadingState(false);
-            },
-            () => {
-                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    setForm((prev) => ({ ...prev, [formField]: downloadURL }));
-                    setPreviewState(downloadURL);
-                    setUploadingState(false);
-                });
+            const res = await fetch('https://api.cloudinary.com/v1_1/dupjdmjha/image/upload', {
+                method: 'POST',
+                body: uploadData,
+            });
+
+            const data = await res.json();
+            if (data.secure_url) {
+                setForm((prev) => ({ ...prev, image: data.secure_url }));
+            } else {
+                alert('Upload failed.');
             }
-        );
-    };
-
-    const handleImageChange = (e) => {
-        handleFileUpload(e.target.files[0], 'images', setUploadingImage, setPreviewImage, 'image');
-    };
-
-    const handleAudioChange = (e) => {
-        handleFileUpload(e.target.files[0], 'audio', setUploadingAudio, setPreviewAudio, 'audio');
+        } catch (err) {
+            console.error('Image upload error:', err);
+            alert('Error uploading image.');
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleSubmit = async () => {
         const newErrors = {};
+
         if (!form.name) newErrors.name = 'Name is required.';
         if (!form.address) newErrors.address = 'Address is required.';
         if (!form.category) newErrors.category = 'Category is required.';
-        if (!form.latitude || !form.longitude) newErrors.address = 'Please pick a location on the map.';
+        if (!form.latitude || !form.longitude) {
+            newErrors.address = 'Please pick a location on the map.';
+        }
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             setPopup({ type: 'error', message: 'Please fill all required fields.' });
-            if (modalRef.current) modalRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors);
+                setPopup({ type: 'error', message: 'Please fill all required fields.' });
+
+                if (modalRef.current) {
+                    modalRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                return;
+            }
+
             return;
         }
 
@@ -90,7 +117,6 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                 id: form.id || Date.now(),
                 categoryOption: form.category,
                 customCategory: form.customCategory || '',
-                audio: form.audio || '',
             };
 
             const docRef = isEditing
@@ -113,8 +139,12 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
             <div className="modal-content" ref={modalRef}>
                 <button className="modal-close" onClick={onCancel}>&times;</button>
                 <h2>{isEditing ? 'Edit Marker' : 'Add New Marker'}</h2>
+                {popup.message && (
+                    <div className={`popup-message ${popup.type}`}>
+                        {popup.message}
+                    </div>
+                )}
 
-                {popup.message && <div className={`popup-message ${popup.type}`}>{popup.message}</div>}
                 <div className="tabs">
                     <button className={`tab ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>Details</button>
                     <button className={`tab ${activeTab === 'hours' ? 'active' : ''}`} onClick={() => setActiveTab('hours')}>Opening Hours</button>
@@ -122,32 +152,36 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
 
                 {activeTab === 'details' && (
                     <form className="marker-form">
+                        {/* --- Details form fields remain the same --- */}
                         <div className="field-group full-width">
                             <label htmlFor="name">Name*</label>
                             <input type="text" id="name" name="name" value={form.name} onChange={handleInputChange} required />
                         </div>
                         <div className="field-group full-width">
                             <label htmlFor="description">Description</label>
-                            <textarea id="description" name="description" value={form.description} onChange={handleInputChange} rows={4} placeholder="Write a short description..." />
+                            <textarea
+                                id="description"
+                                name="description"
+                                value={form.description}
+                                onChange={handleInputChange}
+                                rows={4}
+                                placeholder="Write a short description..."
+                            />
                         </div>
-
-                        {/* --- Image Upload & URL Section --- */}
                         <div className="marker-form full-width" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="field-group">
                                 <label htmlFor="image">Upload Image</label>
-                                <input type="file" onChange={handleImageChange} accept="image/*" disabled={uploadingImage} />
+                                <input type="file" onChange={handleImageChange} accept="image/*" />
                             </div>
                             <div className="field-group">
                                 <label htmlFor="imageUrl">Or Paste Image URL</label>
                                 <input
                                     type="url"
-                                    id="imageUrl"
-                                    value={form.image || ''}
+                                    value={form.image}
                                     onChange={(e) => {
                                         setForm(prev => ({ ...prev, image: e.target.value }));
                                         setPreviewImage(e.target.value);
                                     }}
-                                    placeholder="https://example.com/image.jpg"
                                 />
                             </div>
                             {previewImage && (
@@ -156,34 +190,6 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                                 </div>
                             )}
                         </div>
-
-                        {/* --- Audio Upload & URL Section --- */}
-                        <div className="marker-form full-width" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '1rem' }}>
-                            <div className="field-group">
-                                <label htmlFor="audio">Upload Audio Guide</label>
-                                <input type="file" onChange={handleAudioChange} accept="audio/*" disabled={uploadingAudio} />
-                            </div>
-                            <div className="field-group">
-                                <label htmlFor="audioUrl">Or Paste Audio URL</label>
-                                <input
-                                    type="url"
-                                    id="audioUrl"
-                                    value={form.audio || ''}
-                                    onChange={(e) => {
-                                        setForm(prev => ({ ...prev, audio: e.target.value }));
-                                        setPreviewAudio(e.target.value);
-                                    }}
-                                    placeholder="https://example.com/audio.mp3"
-                                />
-                            </div>
-                            {previewAudio && (
-                                <div className="audio-preview">
-                                    <audio controls src={previewAudio} />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* --- Other Fields... --- */}
                         <div className="marker-form full-width" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="field-group">
                                 <label htmlFor="category">Category*</label>
@@ -199,10 +205,16 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                             </div>
                             <div className="field-group">
                                 <label htmlFor="entranceFee">Entrance Fee</label>
-                                <input type="text" id="entranceFee" name="entranceFee" value={form.entranceFee} onChange={handleInputChange} placeholder="e.g., 100 PHP or Free" />
+                                <input
+                                    type="text"
+                                    id="entranceFee"
+                                    name="entranceFee"
+                                    value={form.entranceFee}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g., 100 PHP or Free"
+                                />
                             </div>
                         </div>
-
                         <div className="checkbox-row full-width">
                             <label className="checkbox-group">
                                 <input type="checkbox" name="accessibleRestroom" checked={form.accessibleRestroom} onChange={handleInputChange} />
@@ -217,7 +229,9 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                             <label htmlFor="address">Address*</label>
                             <input type="text" id="address" name="address" value={form.address} onChange={handleInputChange} required />
                             <LocationPickerMap
-                                onLocationSelect={({ lat, lng, address }) => setForm(prev => ({ ...prev, latitude: lat.toString(), longitude: lng.toString(), address }))}
+                                onLocationSelect={({ lat, lng, address }) =>
+                                    setForm((prev) => ({ ...prev, latitude: lat.toString(), longitude: lng.toString(), address }))
+                                }
                             />
                         </div>
                     </form>
@@ -225,17 +239,48 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
 
                 {activeTab === 'hours' && (
                     <div className="field-group full-width">
-                        <OpeningHoursEditor value={form.openingHours} onChange={updatedHours => setForm(prev => ({ ...prev, openingHours: updatedHours || {} }))} />
+                        <OpeningHoursEditor
+                            value={form.openingHours}
+                            // MODIFIED: Use the new handler for validation
+                            onChange={handleOpeningHoursChange}
+                        />
                     </div>
                 )}
 
                 <div className="form-actions full-width">
-                    {activeTab === 'details' && <button type="button" className="next-btn save-btn" onClick={() => setActiveTab('hours')}>Next</button>}
-                    {activeTab === 'hours' && <button type="button" className="back-btn cancel-btn" onClick={() => setActiveTab('details')}>Back</button>}
-                    <button type="button" className="save-btn" onClick={handleSubmit} disabled={saving || uploadingImage || uploadingAudio}>
-                        {saving || uploadingImage || uploadingAudio ? 'Saving...' : isEditing ? 'Update Marker' : 'Save Marker'}
+                    {activeTab === 'details' && (
+                        <button
+                            type="button"
+                            className="next-btn save-btn"
+                            onClick={() => setActiveTab('hours')}
+                        >
+                            Next
+                        </button>
+                    )}
+                    {activeTab === 'hours' && (
+                        <button
+                            type="button"
+                            className="back-btn cancel-btn"
+                            onClick={() => setActiveTab('details')}
+                        >
+                            Back
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        className="save-btn"
+                        onClick={handleSubmit}
+                        disabled={saving || uploading}
+                    >
+                        {saving || uploading ? 'Saving...' : isEditing ? 'Update Marker' : 'Save Marker'}
                     </button>
-                    <button type="button" className="cancel-btn" onClick={onCancel}>Cancel</button>
+                    <button
+                        type="button"
+                        className="cancel-btn"
+                        onClick={onCancel}
+                    >
+                        Cancel
+                    </button>
                 </div>
             </div>
         </div>

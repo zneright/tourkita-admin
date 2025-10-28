@@ -41,6 +41,7 @@ const ArManagement = () => {
     const [arAssets, setArAssets] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [deletingId, setDeletingId] = useState(null);
+    // ADDED: State to track which asset's visibility is being updated
     const [updatingVisibilityId, setUpdatingVisibilityId] = useState(null);
     const [activeCategory, setActiveCategory] = useState("All");
 
@@ -69,17 +70,10 @@ const ArManagement = () => {
     }, [fetchMarkers, fetchArAssets]);
 
     const filteredAssets = useMemo(() => {
-        const visibleAssets = arAssets.filter(asset => asset.isVisible !== false);
-        const hiddenAssets = arAssets.filter(asset => asset.isVisible === false);
-
-        switch (activeCategory) {
-            case "Hidden":
-                return hiddenAssets;
-            case "All":
-                return visibleAssets;
-            default:
-                return visibleAssets.filter(asset => asset.category === activeCategory);
+        if (activeCategory === "All") {
+            return arAssets;
         }
+        return arAssets.filter(asset => asset.category === activeCategory);
     }, [arAssets, activeCategory]);
 
 
@@ -105,7 +99,7 @@ const ArManagement = () => {
     const handleToggleVisibility = async (e, asset) => {
         e.stopPropagation();
         setUpdatingVisibilityId(asset.id);
-        const newVisibility = asset.isVisible === false;
+        const newVisibility = asset.isVisible === false; 
 
         try {
             const assetRef = doc(db, "arTargets", asset.id);
@@ -177,8 +171,6 @@ const ArManagement = () => {
                         <button className={`mtab ${activeCategory === "All" ? "active" : ""}`} onClick={() => setActiveCategory("All")}>All</button>
                         <button className={`mtab ${activeCategory === "Building" ? "active" : ""}`} onClick={() => setActiveCategory("Building")}>Buildings</button>
                         <button className={`mtab ${activeCategory === "Relics/Artifacts" ? "active" : ""}`} onClick={() => setActiveCategory("Relics/Artifacts")}>Relics/Artifacts</button>
-
-                        <button className={`mtab ${activeCategory === "Hidden" ? "active" : ""}`} onClick={() => setActiveCategory("Hidden")}>Hidden</button>
                     </div>
                     <button onClick={() => { setAssetToEdit(null); setShowUploadForm(true); }}>Add New AR Asset</button>
                 </div>
@@ -187,6 +179,7 @@ const ArManagement = () => {
                         <SkeletonARList count={8} />
                     ) : (
                         filteredAssets.map((asset) => (
+                            // MODIFIED: Added a conditional class 'is-hidden'
                             <div
                                 className={`marker-card ${asset.isVisible === false ? 'is-hidden' : ''}`}
                                 key={asset.id}

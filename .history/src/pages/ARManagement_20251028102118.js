@@ -69,17 +69,10 @@ const ArManagement = () => {
     }, [fetchMarkers, fetchArAssets]);
 
     const filteredAssets = useMemo(() => {
-        const visibleAssets = arAssets.filter(asset => asset.isVisible !== false);
-        const hiddenAssets = arAssets.filter(asset => asset.isVisible === false);
-
-        switch (activeCategory) {
-            case "Hidden":
-                return hiddenAssets;
-            case "All":
-                return visibleAssets;
-            default:
-                return visibleAssets.filter(asset => asset.category === activeCategory);
+        if (activeCategory === "All") {
+            return arAssets;
         }
+        return arAssets.filter(asset => asset.category === activeCategory);
     }, [arAssets, activeCategory]);
 
 
@@ -177,7 +170,7 @@ const ArManagement = () => {
                         <button className={`mtab ${activeCategory === "All" ? "active" : ""}`} onClick={() => setActiveCategory("All")}>All</button>
                         <button className={`mtab ${activeCategory === "Building" ? "active" : ""}`} onClick={() => setActiveCategory("Building")}>Buildings</button>
                         <button className={`mtab ${activeCategory === "Relics/Artifacts" ? "active" : ""}`} onClick={() => setActiveCategory("Relics/Artifacts")}>Relics/Artifacts</button>
-
+                        {/* ADD THIS NEW BUTTON */}
                         <button className={`mtab ${activeCategory === "Hidden" ? "active" : ""}`} onClick={() => setActiveCategory("Hidden")}>Hidden</button>
                     </div>
                     <button onClick={() => { setAssetToEdit(null); setShowUploadForm(true); }}>Add New AR Asset</button>

@@ -3,8 +3,9 @@ import './MarkerFormModal.css';
 import OpeningHoursEditor from './OpeningHoursEditor';
 import LocationPickerMap from './LocationPickerMap';
 import { collection, doc, setDoc } from 'firebase/firestore';
-
+// MODIFIED: Import storage from your firebase config
 import { db, storage } from '../firebase';
+// MODIFIED: Import necessary functions from Firebase Storage SDK
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
@@ -31,6 +32,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
         setForm((prev) => ({ ...prev, [name]: newValue }));
     };
 
+    // REFACTORED: Generic file upload function for Firebase Storage
     const handleFileUpload = (file, fileType, setUploadingState, setPreviewState, formField) => {
         if (!file) return;
 
@@ -42,13 +44,17 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
 
         uploadTask.on(
             'state_changed',
-            (snapshot) => { /* Optional: handle progress */ },
+            (snapshot) => {
+                // Optional: handle progress updates here
+            },
             (error) => {
+                // Handle unsuccessful uploads
                 console.error(`Error uploading ${fileType}:`, error);
                 alert(`Error uploading ${fileType}.`);
                 setUploadingState(false);
             },
             () => {
+                // Handle successful uploads on complete
                 getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
                     setForm((prev) => ({ ...prev, [formField]: downloadURL }));
                     setPreviewState(downloadURL);
@@ -58,15 +64,20 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
         );
     };
 
+    // MODIFIED: Use the new generic upload handler
     const handleImageChange = (e) => {
-        handleFileUpload(e.target.files[0], 'images', setUploadingImage, setPreviewImage, 'image');
+        const file = e.target.files[0];
+        handleFileUpload(file, 'images', setUploadingImage, setPreviewImage, 'image');
     };
 
+    // MODIFIED: Use the new generic upload handler
     const handleAudioChange = (e) => {
-        handleFileUpload(e.target.files[0], 'audio', setUploadingAudio, setPreviewAudio, 'audio');
+        const file = e.target.files[0];
+        handleFileUpload(file, 'audio', setUploadingAudio, setPreviewAudio, 'audio');
     };
 
     const handleSubmit = async () => {
+        // ... (validation logic remains the same)
         const newErrors = {};
         if (!form.name) newErrors.name = 'Name is required.';
         if (!form.address) newErrors.address = 'Address is required.';
@@ -114,41 +125,31 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                 <button className="modal-close" onClick={onCancel}>&times;</button>
                 <h2>{isEditing ? 'Edit Marker' : 'Add New Marker'}</h2>
 
+                {/* --- POPUP & TABS --- */}
                 {popup.message && <div className={`popup-message ${popup.type}`}>{popup.message}</div>}
                 <div className="tabs">
                     <button className={`tab ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>Details</button>
                     <button className={`tab ${activeTab === 'hours' ? 'active' : ''}`} onClick={() => setActiveTab('hours')}>Opening Hours</button>
                 </div>
 
+                {/* --- DETAILS TAB --- */}
                 {activeTab === 'details' && (
                     <form className="marker-form">
+                        {/* Name and Description */}
                         <div className="field-group full-width">
                             <label htmlFor="name">Name*</label>
                             <input type="text" id="name" name="name" value={form.name} onChange={handleInputChange} required />
                         </div>
                         <div className="field-group full-width">
                             <label htmlFor="description">Description</label>
-                            <textarea id="description" name="description" value={form.description} onChange={handleInputChange} rows={4} placeholder="Write a short description..." />
+                            <textarea id="description" name="description" value={form.description} onChange={handleInputChange} rows={4} />
                         </div>
 
-                        {/* --- Image Upload & URL Section --- */}
+                        {/* Image Upload */}
                         <div className="marker-form full-width" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="field-group">
                                 <label htmlFor="image">Upload Image</label>
                                 <input type="file" onChange={handleImageChange} accept="image/*" disabled={uploadingImage} />
-                            </div>
-                            <div className="field-group">
-                                <label htmlFor="imageUrl">Or Paste Image URL</label>
-                                <input
-                                    type="url"
-                                    id="imageUrl"
-                                    value={form.image || ''}
-                                    onChange={(e) => {
-                                        setForm(prev => ({ ...prev, image: e.target.value }));
-                                        setPreviewImage(e.target.value);
-                                    }}
-                                    placeholder="https://example.com/image.jpg"
-                                />
                             </div>
                             {previewImage && (
                                 <div className="image-preview">
@@ -157,24 +158,11 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                             )}
                         </div>
 
-                        {/* --- Audio Upload & URL Section --- */}
+                        {/* Audio Upload */}
                         <div className="marker-form full-width" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '1rem' }}>
                             <div className="field-group">
                                 <label htmlFor="audio">Upload Audio Guide</label>
                                 <input type="file" onChange={handleAudioChange} accept="audio/*" disabled={uploadingAudio} />
-                            </div>
-                            <div className="field-group">
-                                <label htmlFor="audioUrl">Or Paste Audio URL</label>
-                                <input
-                                    type="url"
-                                    id="audioUrl"
-                                    value={form.audio || ''}
-                                    onChange={(e) => {
-                                        setForm(prev => ({ ...prev, audio: e.target.value }));
-                                        setPreviewAudio(e.target.value);
-                                    }}
-                                    placeholder="https://example.com/audio.mp3"
-                                />
                             </div>
                             {previewAudio && (
                                 <div className="audio-preview">
@@ -183,7 +171,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                             )}
                         </div>
 
-                        {/* --- Other Fields... --- */}
+                        {/* Category and Fee */}
                         <div className="marker-form full-width" style={{ gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="field-group">
                                 <label htmlFor="category">Category*</label>
@@ -203,6 +191,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                             </div>
                         </div>
 
+                        {/* Checkboxes and Address */}
                         <div className="checkbox-row full-width">
                             <label className="checkbox-group">
                                 <input type="checkbox" name="accessibleRestroom" checked={form.accessibleRestroom} onChange={handleInputChange} />
@@ -223,12 +212,14 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
                     </form>
                 )}
 
+                {/* --- HOURS TAB --- */}
                 {activeTab === 'hours' && (
                     <div className="field-group full-width">
                         <OpeningHoursEditor value={form.openingHours} onChange={updatedHours => setForm(prev => ({ ...prev, openingHours: updatedHours || {} }))} />
                     </div>
                 )}
 
+                {/* --- FORM ACTIONS --- */}
                 <div className="form-actions full-width">
                     {activeTab === 'details' && <button type="button" className="next-btn save-btn" onClick={() => setActiveTab('hours')}>Next</button>}
                     {activeTab === 'hours' && <button type="button" className="back-btn cancel-btn" onClick={() => setActiveTab('details')}>Back</button>}

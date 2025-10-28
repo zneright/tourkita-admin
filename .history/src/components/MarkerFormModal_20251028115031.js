@@ -3,7 +3,7 @@ import './MarkerFormModal.css';
 import OpeningHoursEditor from './OpeningHoursEditor';
 import LocationPickerMap from './LocationPickerMap';
 import { collection, doc, setDoc } from 'firebase/firestore';
-
+import Video from 'react-native-video';
 import { db, storage } from '../firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -31,6 +31,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
         setForm((prev) => ({ ...prev, [name]: newValue }));
     };
 
+    // Generic file upload function for Firebase Storage
     const handleFileUpload = (file, fileType, setUploadingState, setPreviewState, formField) => {
         if (!file) return;
 

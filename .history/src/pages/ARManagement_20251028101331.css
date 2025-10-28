@@ -157,14 +157,48 @@
     background-color: #f8f8f8;
 }
 
+/* Make the image grayscale when hidden */
 .marker-card.is-hidden .marker-card-image {
     filter: grayscale(100%);
 }
 
+/* Change cursor to indicate it's not the primary action */
 .marker-card.is-hidden {
     cursor: default;
 }
 
+.card-actions button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    /* Space between icon and text */
+    padding: 8px 12px;
+}
+
+/* Specific style for the new visibility button */
 .visibility-btn {
     background-color: #6c757d;
+    /* A neutral gray color */
+}
+
+.visibility-btn:hover {
+    background-color: #5a6268;
+}
+
+/* Make sure the existing buttons still have their styles */
+.edit-btn {
+    background-color: #007bff;
+}
+
+.edit-btn:hover {
+    background-color: #0056b3;
+}
+
+.delete-btn {
+    background-color: #dc3545;
+}
+
+.delete-btn:hover {
+    background-color: #c82333;
 }

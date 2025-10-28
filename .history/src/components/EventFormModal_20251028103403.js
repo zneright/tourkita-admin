@@ -15,6 +15,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
     const [imageFile, setImageFile] = useState(null);
     const [uploading, setUploading] = useState(false);
 
+    // ADDED: Get today's date in YYYY-MM-DD format to disable past dates.
     const today = new Date().toISOString().split("T")[0];
 
     const formatTime = (time) => {
@@ -48,6 +49,8 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
         setImageFile(null);
     };
 
+
+
     useEffect(() => {
         const fetchMarkers = async () => {
             setLoadingLocations(true);
@@ -75,7 +78,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
         return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
     };
 
-    // MODIFIED: Updated handleChange to handle date AND time validation logic.
+    // MODIFIED: Updated handleChange to handle date validation logic.
     const handleChange = e => {
         const { name, value, type, checked } = e.target;
         const newValue = type === "checkbox" ? checked : value;
@@ -92,16 +95,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                     },
                 };
             });
-        } else if (name === "eventStartTime") { // ADDED: Logic for start time
-            setFormData(prev => {
-                // If the new start time is after the current end time, clear end time
-                const isEndTimeInvalid = prev.eventEndTime && value > prev.eventEndTime;
-                return {
-                    ...prev,
-                    eventStartTime: value,
-                    eventEndTime: isEndTimeInvalid ? "" : prev.eventEndTime,
-                };
-            });
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -109,7 +102,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
             }));
         }
     };
-
 
     const handleRecurrenceChange = (key, value) => {
         setFormData(prev => ({
@@ -300,6 +292,8 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                         />
                     </div>
 
+
+
                     {/* Recurrence */}
                     <div className="field-group full-width">
                         <label>Recurrence:</label>
@@ -323,7 +317,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                 id="startDate"
                                 value={formData.startDate || ""}
                                 onChange={handleChange}
-                                min={today}
+                                min={today} // ADDED: Prevents selecting past dates
                                 disabled={isDisabled}
                                 required
                             />
@@ -340,7 +334,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                     id="startDate"
                                     value={formData.startDate || ""}
                                     onChange={handleChange}
-                                    min={today}
+                                    min={today} // ADDED: Prevents selecting past dates
                                     disabled={isDisabled}
                                     required
                                 />
@@ -355,6 +349,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                     id="endDate"
                                     value={formData.recurrence?.endDate || ""}
                                     onChange={e => handleRecurrenceChange("endDate", e.target.value)}
+                                    // MODIFIED: End date must be after start date and is disabled if no start date is selected.
                                     min={formData.startDate}
                                     disabled={isDisabled || !formData.startDate}
                                     required
@@ -407,7 +402,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                             value={formData.eventStartTime?.slice(0, 5) || ""}
                             onChange={handleChange}
                             required
-                            step={300}
+                            step={300} 
                         />
                     </div>
 
@@ -418,9 +413,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                             name="eventEndTime"
                             value={formData.eventEndTime?.slice(0, 5) || ""}
                             onChange={handleChange}
-                            // MODIFIED: Disable if no start time is selected and set min time
-                            disabled={isDisabled || !formData.eventStartTime}
-                            min={formData.eventStartTime}
+                            disabled={isDisabled}
                             required
                             step={300}
                         />

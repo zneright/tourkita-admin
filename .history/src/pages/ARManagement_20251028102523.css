@@ -15,8 +15,48 @@
 }
 
 .top-controls {
-    display: flex;
-    margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column; /* Stack tabs and search bar */
+  gap: 1rem;             /* Space between the two rows */
+  margin-bottom: 1.5rem;
+}
+
+.search-and-add {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-bar {
+  flex-grow: 1; /* Allows the search bar to take available space */
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: #888;
+  font-size: 18px;
+  pointer-events: none; /* Allows clicks to pass through to the input */
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.7rem 1rem 0.7rem 2.5rem; /* Left padding for the icon */
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #493628;
+  box-shadow: 0 0 0 2px rgba(73, 54, 40, 0.2);
 }
 
 .top-controls button {

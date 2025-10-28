@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./ARManagement.css";
 import "@google/model-viewer";
-// MODIFIED: Added FiEye and FiEyeOff icons
-import { FiLoader, FiEye, FiEyeOff } from "react-icons/fi";
+// MODIFIED: Added FiSearch for the new search bar
+import { FiLoader, FiEye, FiEyeOff, FiSearch } from "react-icons/fi";
 import Sidebar from "../components/Sidebar";
 import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc, where } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
@@ -43,6 +43,8 @@ const ArManagement = () => {
     const [deletingId, setDeletingId] = useState(null);
     const [updatingVisibilityId, setUpdatingVisibilityId] = useState(null);
     const [activeCategory, setActiveCategory] = useState("All");
+    // ADDED: State for the search term
+    const [searchTerm, setSearchTerm] = useState("");
 
     const fetchMarkers = useCallback(async () => {
         try {
@@ -68,20 +70,38 @@ const ArManagement = () => {
         fetchArAssets();
     }, [fetchMarkers, fetchArAssets]);
 
+    // MODIFIED: Updated filtering logic to include search functionality
     const filteredAssets = useMemo(() => {
+        // 1. Filter by category/visibility first
+        let assetsToShow;
         const visibleAssets = arAssets.filter(asset => asset.isVisible !== false);
         const hiddenAssets = arAssets.filter(asset => asset.isVisible === false);
 
         switch (activeCategory) {
             case "Hidden":
-                return hiddenAssets;
+                assetsToShow = hiddenAssets;
+                break;
             case "All":
-                return visibleAssets;
+                assetsToShow = visibleAssets;
+                break;
             default:
-                return visibleAssets.filter(asset => asset.category === activeCategory);
+                assetsToShow = visibleAssets.filter(asset => asset.category === activeCategory);
+                break;
         }
-    }, [arAssets, activeCategory]);
 
+        // 2. If no search term, return the already filtered list
+        if (!searchTerm.trim()) {
+            return assetsToShow;
+        }
+
+        // 3. Otherwise, apply the search filter on top
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return assetsToShow.filter(asset => {
+            const nameMatch = asset.name?.toLowerCase().includes(lowercasedFilter);
+            const locationMatch = asset.locationName?.toLowerCase().includes(lowercasedFilter);
+            return nameMatch || locationMatch;
+        });
+    }, [arAssets, activeCategory, searchTerm]); // Added searchTerm to dependency array
 
     const handleModalClose = () => {
         setShowUploadForm(false);
@@ -109,9 +129,7 @@ const ArManagement = () => {
 
         try {
             const assetRef = doc(db, "arTargets", asset.id);
-            await updateDoc(assetRef, {
-                isVisible: newVisibility,
-            });
+            await updateDoc(assetRef, { isVisible: newVisibility });
             setArAssets(prevAssets =>
                 prevAssets.map(a =>
                     a.id === asset.id ? { ...a, isVisible: newVisibility } : a
@@ -133,18 +151,14 @@ const ArManagement = () => {
         setDeletingId(asset.id);
         try {
             const locationName = asset.locationName || asset.id;
-
             await deleteDoc(doc(db, "arTargets", asset.id));
-
             const filesToDelete = [asset.imageUrl, asset.modelUrl, asset.videoUrl].filter(Boolean);
             if (filesToDelete.length > 0) {
                 const deletePromises = filesToDelete.map(url => deleteObject(ref(storage, url)));
                 await Promise.all(deletePromises);
             }
-
             const q = query(collection(db, "arTargets"), where("locationName", "==", locationName));
             const remainingAssetsSnapshot = await getDocs(q);
-
             if (remainingAssetsSnapshot.empty) {
                 const markerToUpdate = markers.find(m => m.name === locationName);
                 if (markerToUpdate) {
@@ -153,7 +167,6 @@ const ArManagement = () => {
                 }
                 await deleteDoc(doc(db, "arMarkers", locationName));
             }
-
             alert("AR Asset deleted successfully!");
             fetchArAssets();
         } catch (error) {
@@ -164,6 +177,9 @@ const ArManagement = () => {
         }
     };
 
+    // ADDED: A helper variable to improve the empty state message
+    const isSearchActive = searchTerm.trim().length > 0;
+
     return (
         <div className={showUploadForm ? "dashboard-main modal-is-open" : "dashboard-main"}>
             <div className="dashboard-section">
@@ -172,15 +188,27 @@ const ArManagement = () => {
                     <h2 className="page-title">AR Asset Management</h2>
                     <p className="page-subtitle">Manage 3D models and content for locations in Intramuros.</p>
                 </div>
+                {/* MODIFIED: The top controls section is updated for the search bar */}
                 <div className="top-controls">
                     <div className="mtab-buttons">
                         <button className={`mtab ${activeCategory === "All" ? "active" : ""}`} onClick={() => setActiveCategory("All")}>All</button>
                         <button className={`mtab ${activeCategory === "Building" ? "active" : ""}`} onClick={() => setActiveCategory("Building")}>Buildings</button>
                         <button className={`mtab ${activeCategory === "Relics/Artifacts" ? "active" : ""}`} onClick={() => setActiveCategory("Relics/Artifacts")}>Relics/Artifacts</button>
-
                         <button className={`mtab ${activeCategory === "Hidden" ? "active" : ""}`} onClick={() => setActiveCategory("Hidden")}>Hidden</button>
                     </div>
-                    <button onClick={() => { setAssetToEdit(null); setShowUploadForm(true); }}>Add New AR Asset</button>
+                    <div className="search-and-add">
+                        <div className="search-bar">
+                            <FiSearch className="search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search by name or location..."
+                                className="search-input"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <button onClick={() => { setAssetToEdit(null); setShowUploadForm(true); }}>Add New AR Asset</button>
+                    </div>
                 </div>
                 <div className="markers-list">
                     {isLoading ? (
@@ -207,7 +235,6 @@ const ArManagement = () => {
                                     <p className="asset-category">{asset.category}</p>
                                 </div>
                                 <div className="card-actions">
-                                    {/* ADDED: Visibility Toggle Button */}
                                     <button
                                         onClick={(ev) => handleToggleVisibility(ev, asset)}
                                         className="visibility-btn"
@@ -224,10 +251,20 @@ const ArManagement = () => {
                     )}
                 </div>
 
+                {/* MODIFIED: Updated empty state to be search-aware */}
                 {!isLoading && filteredAssets.length === 0 && (
                     <div className="empty-state">
-                        <h3>No AR Assets Found for '{activeCategory}'</h3>
-                        <p>Click "Add New AR Asset" to get started or select a different category.</p>
+                        {isSearchActive ? (
+                            <>
+                                <h3>No Results Found</h3>
+                                <p>Your search for "{searchTerm}" did not match any assets.</p>
+                            </>
+                        ) : (
+                            <>
+                                <h3>No AR Assets Found for '{activeCategory}'</h3>
+                                <p>Click "Add New AR Asset" to get started or select a different category.</p>
+                            </>
+                        )}
                     </div>
                 )}
 

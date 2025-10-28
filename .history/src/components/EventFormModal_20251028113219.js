@@ -67,49 +67,39 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
 
         if (isOpen) fetchMarkers();
     }, [isOpen]);
-    const formatTime12Hour = (time24) => {
-        if (!time24) return "";
-        let [hours, minutes] = time24.split(":").map(Number);
-        const ampm = hours >= 12 ? "PM" : "AM";
-        hours = hours % 12 || 12;
-        return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
-    };
 
-    // MODIFIED: Updated handleChange to handle date AND time validation logic.
     const handleChange = e => {
         const { name, value, type, checked } = e.target;
         const newValue = type === "checkbox" ? checked : value;
 
-        if (name === "startDate") {
-            setFormData(prev => {
-                const isEndDateInvalid = prev.recurrence.endDate && new Date(value) >= new Date(prev.recurrence.endDate);
-                return {
-                    ...prev,
-                    startDate: value,
-                    recurrence: {
-                        ...prev.recurrence,
-                        endDate: isEndDateInvalid ? "" : prev.recurrence.endDate,
-                    },
-                };
-            });
-        } else if (name === "eventStartTime") { // ADDED: Logic for start time
-            setFormData(prev => {
-                // If the new start time is after the current end time, clear end time
-                const isEndTimeInvalid = prev.eventEndTime && value > prev.eventEndTime;
-                return {
-                    ...prev,
-                    eventStartTime: value,
-                    eventEndTime: isEndTimeInvalid ? "" : prev.eventEndTime,
-                };
-            });
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: newValue
-            }));
-        }
-    };
+        setFormData(prev => {
+            const updatedData = { ...prev, [name]: newValue };
 
+            // When start date changes, clear end date if it becomes invalid
+            if (name === "startDate") {
+                if (updatedData.recurrence.endDate && new Date(updatedData.startDate) >= new Date(updatedData.recurrence.endDate)) {
+                    updatedData.recurrence.endDate = "";
+                }
+            }
+
+            // When start time changes, clear end time if it becomes invalid
+            if (name === "eventStartTime") {
+                if (updatedData.eventEndTime && newValue > updatedData.eventEndTime) {
+                    updatedData.eventEndTime = "";
+                }
+            }
+
+            // When end time changes, prevent it from being before the start time
+            if (name === "eventEndTime") {
+                if (updatedData.eventStartTime && newValue < updatedData.eventStartTime) {
+                    // Reject the invalid change by returning the previous state
+                    return prev;
+                }
+            }
+
+            return updatedData;
+        });
+    };
 
     const handleRecurrenceChange = (key, value) => {
         setFormData(prev => ({
@@ -161,6 +151,13 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
 
     const handleSubmit = async e => {
         e.preventDefault();
+
+        // Final validation check before submitting
+        if (formData.eventStartTime && formData.eventEndTime && formData.eventEndTime < formData.eventStartTime) {
+            alert("End time cannot be before the start time.");
+            return; // Stop submission
+        }
+
         if (submitting || uploading) return;
 
         try {
@@ -249,7 +246,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
 
                         <small>Or pick a custom address on the map:</small>
 
-                        {/* Map Location Picker */}
                         <div style={{ pointerEvents: formData.locationId ? "none" : "auto", opacity: formData.locationId ? 0.5 : 1 }}>
                             <LocationPickerMap
                                 onLocationSelect={({ lng, lat, address }) => {
@@ -264,7 +260,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                             />
                         </div>
 
-                        {/* Show chosen address */}
                         {formData.customAddress && (
                             <p style={{ marginTop: "5px", fontStyle: "italic", color: "#555" }}>
                                 📍 Selected: {formData.customAddress}
@@ -346,7 +341,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                 />
                             </div>
 
-                            {/* End Date */}
                             <div className="field-group">
                                 <label htmlFor="endDate">End Date:</label>
                                 <input
@@ -361,7 +355,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                 />
                             </div>
 
-                            {/* Days of Week */}
                             <div className="field-group full-width">
                                 <label>Days of Week:</label>
                                 <div className="recurrence-days">
@@ -398,7 +391,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                         </>
                     )}
 
-
+                    {/* Times */}
                     <div className="field-group">
                         <label htmlFor="eventStartTime">Start Time:</label>
                         <input
@@ -418,7 +411,6 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                             name="eventEndTime"
                             value={formData.eventEndTime?.slice(0, 5) || ""}
                             onChange={handleChange}
-                            // MODIFIED: Disable if no start time is selected and set min time
                             disabled={isDisabled || !formData.eventStartTime}
                             min={formData.eventStartTime}
                             required
@@ -435,7 +427,7 @@ const EventFormModal = ({ isOpen, formData, setFormData, onCancel, onUpdate }) =
                                 checked={formData.openToPublic || false}
                                 onChange={handleChange}
                                 disabled={isDisabled}
-                            /> {" "}
+                            />{" "}
                             Open to the public?
                         </label>
                     </div>

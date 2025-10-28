@@ -1,0 +1,272 @@
+/* Import professional fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Merriweather:wght@700&display=swap');
+
+/* === Main Layout & Content Container === */
+.legal-wrapper {
+    display: flex;
+    justify-content: center;
+    background-color: #f7f9fc;
+    /* Softer, slightly blue-tinted background */
+    font-family: 'Lato', 'Segoe UI', system-ui, sans-serif;
+    color: #333;
+    /* Softer default text color */
+}
+
+.legal-content {
+    flex: 1;
+    max-width: 850px;
+    margin: 3rem 1.5rem;
+    padding: 3rem 3.5rem;
+    background-color: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #eef2f7;
+    /* Very subtle border */
+    box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.07);
+}
+
+/* === Typography === */
+.legal-content h2 {
+    font-family: 'Merriweather', 'Georgia', serif;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: #1a202c;
+    /* A deep charcoal for strong headings */
+    margin-bottom: 2.5rem;
+    padding-left: 1.25rem;
+    border-left: 4px solid #2563eb;
+    /* A modern accent line */
+}
+
+.legal-content p {
+    font-size: 1.1rem;
+    /* Slightly larger for readability */
+    line-height: 1.8;
+    color: #4a5568;
+    /* A comfortable reading grey */
+    margin-bottom: 1.5rem;
+}
+
+.legal-content ul {
+    list-style-type: none;
+    /* Remove default bullets */
+    padding-left: 1rem;
+    margin: 2rem 0;
+}
+
+.legal-content ul li {
+    position: relative;
+    margin-bottom: 1rem;
+    padding-left: 1.75rem;
+    /* Make space for custom bullet */
+    font-size: 1.1rem;
+    color: #4a5568;
+}
+
+.legal-content ul li::before {
+    content: '•';
+    /* Custom bullet point */
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #2563eb;
+    /* Accent color for bullets */
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.last-updated {
+    font-size: 0.9rem;
+    color: #718096;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eef2f7;
+    /* Separator line */
+    font-style: normal;
+}
+
+/* === FAQ Specific Styles (Major Upgrade) === */
+.faq-item {
+    border-bottom: 1px solid #eef2f7;
+    margin-bottom: 0;
+}
+
+.faq-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 1.5rem 0;
+    font-family: 'Lato', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #2d3748;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.faq-button:hover {
+    color: #2563eb;
+}
+
+/* Replaced arrow with a CSS-only plus/minus icon */
+.faq-arrow {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease-out;
+}
+
+.faq-arrow::before,
+.faq-arrow::after {
+    content: '';
+    position: absolute;
+    background-color: #718096;
+    transition: transform 0.3s ease-out;
+}
+
+.faq-button:hover .faq-arrow::before,
+.faq-button:hover .faq-arrow::after {
+    background-color: #2563eb;
+}
+
+.faq-arrow::before {
+    /* Horizontal line */
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    margin-top: -1px;
+}
+
+.faq-arrow::after {
+    /* Vertical line */
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    margin-left: -1px;
+}
+
+.faq-arrow.expanded::before {
+    transform: rotate(180deg);
+    /* Horizontal line doesn't change visually */
+}
+
+.faq-arrow.expanded::after {
+    transform: rotate(90deg);
+    /* Vertical line becomes horizontal */
+}
+
+.faq-answer {
+    padding: 0 0 1.5rem 0;
+    color: #4a5568;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === Responsive Design === */
+@media (max-width: 768px) {
+    .legal-content {
+        padding: 2.5rem 2rem;
+        margin: 1.5rem 1rem;
+    }
+
+    .legal-content h2 {
+        font-size: 1.8rem;
+    }
+
+    .legal-content p,
+    .legal-content ul li {
+        font-size: 1rem;
+    }
+
+    .faq-button {
+        font-size: 1.1rem;
+    }
+}
+
+/* === Advanced Skeleton Loader with Shimmer Effect === */
+.skeleton {
+    background-color: #e2e8f0;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 150%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 1.75s infinite cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+@keyframes shimmer {
+    0% {
+        left: -150%;
+    }
+
+    100% {
+        left: 150%;
+    }
+}
+
+.skeleton-title {
+    width: 60%;
+    height: 2.5rem;
+    margin-bottom: 2rem;
+}
+
+.skeleton-line {
+    width: 100%;
+    height: 1rem;
+    margin-bottom: 1rem;
+}
+
+.skeleton-line.medium {
+    width: 80%;
+}
+
+.skeleton-line.short {
+    width: 50%;
+}
+
+.skeleton-faq-title {
+    width: 70%;
+    height: 2rem;
+    margin-bottom: 2rem;
+}
+
+.skeleton-faq-item {
+    margin-bottom: 1.5rem;
+}
+
+.skeleton-faq-q {
+    width: 90%;
+    height: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.skeleton-faq-a {
+    width: 100%;
+    height: 3rem;
+}

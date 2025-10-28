@@ -157,6 +157,7 @@
     background-color: #f8f8f8;
 }
 
+/* Make the image grayscale when hidden */
 .marker-card.is-hidden .marker-card-image {
     filter: grayscale(100%);
 }

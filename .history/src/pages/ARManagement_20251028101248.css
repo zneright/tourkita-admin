@@ -157,14 +157,12 @@
     background-color: #f8f8f8;
 }
 
+/* Make the image grayscale when hidden */
 .marker-card.is-hidden .marker-card-image {
     filter: grayscale(100%);
 }
 
+/* Change cursor to indicate it's not the primary action */
 .marker-card.is-hidden {
     cursor: default;
-}
-
-.visibility-btn {
-    background-color: #6c757d;
 }

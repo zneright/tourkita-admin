@@ -31,6 +31,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
         setForm((prev) => ({ ...prev, [name]: newValue }));
     };
 
+    // Generic file upload function for Firebase Storage
     const handleFileUpload = (file, fileType, setUploadingState, setPreviewState, formField) => {
         if (!file) return;
 

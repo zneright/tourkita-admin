@@ -6,30 +6,15 @@ const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'sat
 const OpeningHoursEditor = ({ value = {}, onChange }) => {
     const [copiedDay, setCopiedDay] = useState(null);
 
-    // MODIFIED: This function now handles time validation.
-    const handleChange = (day, field, newTime) => {
-        const dayData = value[day] || {};
-        let updatedDayData = { ...dayData, [field]: newTime, closed: false };
-
-        // When 'open' time changes, clear 'close' time if it becomes invalid.
-        if (field === 'open') {
-            if (dayData.close && newTime > dayData.close) {
-                updatedDayData.close = '';
-            }
-        }
-
-        // When 'close' time changes, prevent it from being before 'open' time.
-        if (field === 'close') {
-            if (dayData.open && newTime < dayData.open) {
-                return; // Reject the change by not calling onChange
-            }
-        }
-
+    const handleChange = (day, field, fieldValue) => {
         const updated = {
             ...value,
-            [day]: updatedDayData,
+            [day]: {
+                ...value[day],
+                [field]: fieldValue,
+                closed: field === 'closed' ? fieldValue : value?.[day]?.closed || false,
+            },
         };
-
         onChange(updated);
     };
 
@@ -91,10 +76,7 @@ const OpeningHoursEditor = ({ value = {}, onChange }) => {
                                 type="time"
                                 value={data.close || ''}
                                 onChange={(e) => handleChange(day, 'close', e.target.value)}
-                                // MODIFIED: Disable if closed or no open time is set.
-                                // Set min time based on open time.
-                                disabled={isClosed || !data.open}
-                                min={data.open}
+                                disabled={isClosed}
                             />
                             <label className="closed-checkbox">
                                 <input

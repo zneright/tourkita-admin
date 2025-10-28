@@ -1,0 +1,62 @@
+.legal-wrapper {
+    display: flex;
+    min-height: 100vh;
+    justify-content: center;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.legal-content {
+    flex: 1;
+    max-width: 900px;
+    padding: 2rem 3rem;
+    background-color: #f9f9f9;
+    text-align: justify;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.legal-content h2 {
+    font-family: 'Georgia', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #4a90e2;
+    padding-bottom: 0.5rem;
+}
+
+.legal-content p {
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: #374151;
+    margin-bottom: 1rem;
+}
+
+.legal-content ul {
+    list-style: disc inside;
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    color: #374151;
+}
+
+.legal-content ul li {
+    margin-bottom: 0.75rem;
+    padding-left: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .legal-content {
+        padding: 2rem 1.5rem;
+    }
+
+    .legal-content h2 {
+        font-size: 1.5rem;
+    }
+}
+
+.last-updated {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 1rem;
+    font-style: italic;
+    font-family: 'Segoe UI', sans-serif;
+}

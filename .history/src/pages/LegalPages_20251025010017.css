@@ -1,0 +1,234 @@
+/* === CSS Variables for Easy Theming === */
+:root {
+    --font-sans: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-serif: 'Georgia', 'Times New Roman', serif;
+    --color-primary: #3b82f6;
+    /* A modern, accessible blue */
+    --color-text-dark: #111827;
+    /* High contrast for headings */
+    --color-text-body: #374151;
+    /* Slightly softer for body text */
+    --color-text-subtle: #6b7280;
+    /* For less important text */
+    --color-background: #f8f9fa;
+    /* A very light grey for the page background */
+    --color-surface: #ffffff;
+    /* White for the content cards */
+    --color-border: #e5e7eb;
+    /* A light border color */
+    --border-radius: 8px;
+    /* Softer, rounded corners */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* === Main Layout & Content Container === */
+.legal-wrapper {
+    display: flex;
+    justify-content: center;
+    background-color: var(--color-background);
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    /* Improved default line height */
+}
+
+.legal-content {
+    flex: 1;
+    max-width: 900px;
+    margin: 2rem 1rem;
+    /* Add margin for spacing on all screen sizes */
+    padding: 2.5rem 3rem;
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+}
+
+/* === Typography === */
+.legal-content h2 {
+    font-family: var(--font-serif);
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--color-text-dark);
+    margin-bottom: 2rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-primary);
+}
+
+.legal-content p {
+    font-size: 1.05rem;
+    color: var(--color-text-body);
+    margin-bottom: 1.25rem;
+}
+
+.legal-content ul {
+    list-style-position: outside;
+    /* Better alignment for list items */
+    padding-left: 1.5rem;
+    margin: 1.5rem 0;
+    color: var(--color-text-body);
+}
+
+.legal-content ul li {
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+    /* Space between bullet and text */
+}
+
+.last-updated {
+    font-size: 0.875rem;
+    color: var(--color-text-subtle);
+    margin-top: 2.5rem;
+    font-style: italic;
+    text-align: left;
+}
+
+/* === FAQ Specific Styles === */
+.faq-item {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.faq-item:last-child {
+    border-bottom: none;
+}
+
+.faq-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.5rem 0;
+    font-family: var(--font-sans);
+    font-size: 1.15rem;
+    /* Slightly larger for better clickability */
+    font-weight: 600;
+    color: var(--color-text-dark);
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+}
+
+.faq-button:hover {
+    color: var(--color-primary);
+}
+
+.faq-arrow {
+    font-size: 1rem;
+    transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.faq-arrow.expanded {
+    transform: rotate(180deg);
+}
+
+.faq-answer {
+    padding: 0.5rem 0 0 0;
+    color: var(--color-text-body);
+    font-size: 1rem;
+    line-height: 1.75;
+    /* Added a subtle slide-down animation */
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === Responsive Design === */
+@media (max-width: 768px) {
+    .legal-content {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+    }
+
+    .legal-content h2 {
+        font-size: 1.75rem;
+    }
+
+    .legal-content p,
+    .legal-content li {
+        font-size: 1rem;
+    }
+
+    .faq-button {
+        font-size: 1.05rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .legal-content {
+        padding: 1.5rem 1rem;
+    }
+}
+
+/* === Skeleton Loader Styles === */
+.skeleton {
+    background-color: #e2e8f0;
+    border-radius: 4px;
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.skeleton-title {
+    width: 60%;
+    height: 2.5rem;
+    margin-bottom: 2rem;
+}
+
+.skeleton-line {
+    width: 100%;
+    height: 1rem;
+    margin-bottom: 1rem;
+}
+
+.skeleton-line.medium {
+    width: 80%;
+}
+
+.skeleton-line.short {
+    width: 50%;
+}
+
+.skeleton-faq-title {
+    width: 70%;
+    height: 2rem;
+    margin-bottom: 2rem;
+}
+
+.skeleton-faq-item {
+    margin-bottom: 1.5rem;
+}
+
+.skeleton-faq-q {
+    width: 90%;
+    height: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.skeleton-faq-a {
+    width: 100%;
+    height: 3rem;
+}

@@ -11,7 +11,7 @@
     z-index: 999;
     padding: 10px;
     font-family: 'Segoe UI', sans-serif;
-}
+}R
 
 .modal-content {
     background: #fefaf6;
@@ -248,18 +248,4 @@ textarea {
     border-radius: 8px;
     display: inline-block;
     font-family: 'Segoe UI', sans-serif;
-}
-
-/* ADDED: Styles for the audio player preview */
-.audio-preview {
-    grid-column: 1 / -1;
-    text-align: center;
-    margin-top: 15px;
-}
-
-.audio-preview audio {
-    width: 100%;
-    max-width: 450px;
-    height: 40px;
-    /* Standard height for audio controls */
 }

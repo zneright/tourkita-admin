@@ -69,17 +69,10 @@ const ArManagement = () => {
     }, [fetchMarkers, fetchArAssets]);
 
     const filteredAssets = useMemo(() => {
-        const visibleAssets = arAssets.filter(asset => asset.isVisible !== false);
-        const hiddenAssets = arAssets.filter(asset => asset.isVisible === false);
-
-        switch (activeCategory) {
-            case "Hidden":
-                return hiddenAssets;
-            case "All":
-                return visibleAssets;
-            default:
-                return visibleAssets.filter(asset => asset.category === activeCategory);
+        if (activeCategory === "All") {
+            return arAssets;
         }
+        return arAssets.filter(asset => asset.category === activeCategory);
     }, [arAssets, activeCategory]);
 
 
