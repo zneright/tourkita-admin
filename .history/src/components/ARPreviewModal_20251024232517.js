@@ -51,15 +51,6 @@ const ARPreviewModal = ({ asset, onClose }) => {
                             </video>
                         </div>
                     )}
-
-                    {asset.audioUrl && (
-                        <div className="preview-item">
-                            <h3>Audio</h3>
-                            <audio src={asset.audioUrl} controls className="preview-audio">
-                                Your browser does not support the audio element.
-                            </audio>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

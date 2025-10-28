@@ -19,12 +19,12 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
         physicalWidth: 0.15,
     });
 
-    // ⭐ NEW: State to hold current file URLs in the component for easy deletion/reference
-    const [currentFileUrls, setCurrentFileUrls] = useState({
-        imageUrl: null,
-        modelUrl: null,
-        videoUrl: null,
-        audioUrl: null,
+    // ⭐ NEW: State to manage file deletion
+    const [filesToDelete, setFilesToDelete] = useState({
+        image: false,
+        model: false,
+        video: false,
+        audio: false,
     });
 
     const [isProcessing, setIsProcessing] = useState(false);
@@ -41,12 +41,12 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                 physicalWidth: assetToEdit.physicalWidth || 0.15,
                 image: null, model: null, videoFile: null, audioFile: null,
             });
-            // ⭐ NEW: Initialize current file URLs from assetToEdit
-            setCurrentFileUrls({
-                imageUrl: assetToEdit.imageUrl || null,
-                modelUrl: assetToEdit.modelUrl || null,
-                videoUrl: assetToEdit.videoUrl || null,
-                audioUrl: assetToEdit.audioUrl || null,
+            // ⭐ NEW: Reset delete flags when editing a new asset
+            setFilesToDelete({
+                image: false,
+                model: false,
+                video: false,
+                audio: false,
             });
         }
     }, [assetToEdit, isEditMode]);
@@ -69,34 +69,30 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
 
     const handleInputChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-    // ⭐ MODIFIED: handleFileChange to clear the current file URL if a new one is selected
+    // ⭐ MODIFIED: handleFileChange to also uncheck delete if a new file is selected
     const handleFileChange = (e) => {
         const { name, files } = e.target;
         setFormData(p => ({ ...p, [name]: files[0] }));
-
-        // When a new file is chosen, we temporarily clear the old URL from currentFileUrls
-        // to prevent it from being used in finalData unless explicitly uploaded.
-        // The old URL is still available in assetToEdit for the cleanup step.
-        const urlKey = name.replace('File', '') + 'Url'; // image, model, videoUrl, audioUrl
-        setCurrentFileUrls(p => ({ ...p, [urlKey]: null }));
-    };
-
-    // ⭐ NEW: handleFileDelete function
-    const handleFileDelete = (fileUrlKey, fileInputName) => {
-        if (!window.confirm(`Are you sure you want to delete the current ${fileUrlKey.replace('Url', '')} file? This action is permanent and will be saved when you click "Save Changes".`)) {
-            return;
+        if (isEditMode) {
+            const fileType = name.replace('File', ''); // 'image', 'model', 'video', 'audio'
+            if (files[0]) {
+                // If a new file is selected, unmark for deletion
+                setFilesToDelete(p => ({ ...p, [fileType]: false }));
+            }
         }
-
-        // 1. Clear the URL from the component's tracking state (currentFileUrls)
-        setCurrentFileUrls(p => ({ ...p, [fileUrlKey]: null }));
-
-        // 2. Clear the file from the formData state (in case a new one was selected and then deleted)
-        setFormData(p => ({ ...p, [fileInputName]: null }));
-
-        // 3. Clear the file input element itself (to reset the form visually)
-        const input = document.getElementsByName(fileInputName)[0];
-        if (input) input.value = '';
     };
+
+    // ⭐ NEW: handleFileDeleteToggle for checkboxes
+    const handleFileDeleteToggle = (fileType) => {
+        setFilesToDelete(p => ({ ...p, [fileType]: !p[fileType] }));
+        // If marking for deletion, clear the selected new file input
+        setFormData(p => ({ ...p, [`${fileType}File`]: null })); // 'imageFile', 'modelFile', etc.
+        // Special case for 'image' and 'model' which don't have 'File' suffix in formData
+        if (fileType === 'image' || fileType === 'model') {
+            setFormData(p => ({ ...p, [fileType]: null }));
+        }
+    };
+
 
     const uploadToFirebaseStorage = (file, path) => {
         return new Promise((resolve, reject) => {
@@ -143,43 +139,43 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                 description: formData.description,
                 locationName: formData.location,
                 physicalWidth: Number(formData.physicalWidth),
-
-                // ⭐ MODIFIED: Check for new upload first, then currentFileUrls state
-                // If a file was deleted (currentFileUrls[key] is null), the key will be null.
-                imageUrl: newImageUrl || currentFileUrls.imageUrl,
-                modelUrl: newModelUrl || currentFileUrls.modelUrl,
-                videoUrl: newVideoUrl || currentFileUrls.videoUrl,
-                audioUrl: newAudioUrl || currentFileUrls.audioUrl,
             };
+
+            // ⭐ MODIFIED: Determine final URLs based on new uploads and delete flags
+            finalData.imageUrl = filesToDelete.image ? null : (newImageUrl || oldFileUrls.image);
+            finalData.modelUrl = filesToDelete.model ? null : (newModelUrl || oldFileUrls.model);
+            finalData.videoUrl = filesToDelete.video ? null : (newVideoUrl || oldFileUrls.video);
+            finalData.audioUrl = filesToDelete.audio ? null : (newAudioUrl || oldFileUrls.audio);
+
 
             setStatusMessage("Updating database records...");
             const selectedMarker = markers.find(m => m.name === formData.location);
             if (!selectedMarker) throw new Error("Selected location not found in markers list.");
             const markerRef = doc(db, "markers", String(selectedMarker.id));
 
-            // Prepare update object to remove fields if value is null
+            // ⭐ MODIFIED: Prepare update object to remove fields if value is null
             const updateArTargetData = { ...finalData };
-            // Ensure any null values delete the field in Firestore upon update
             Object.keys(updateArTargetData).forEach(key => {
                 if (updateArTargetData[key] === null) {
-                    updateArTargetData[key] = null;
+                    // Using `delete` on properties of an object to remove them from Firebase
+                    updateArTargetData[key] = null; // Firebase will delete fields set to null in updateDoc
                 }
             });
 
 
             if (formData.category === 'Building') {
                 const targetRef = doc(db, "arTargets", formData.location);
-                await setDoc(targetRef, updateArTargetData);
+                await setDoc(targetRef, updateArTargetData); // Use setDoc to create/overwrite
                 await updateDoc(markerRef, {
                     arCameraSupported: true,
-                    modelUrl: finalData.modelUrl
+                    modelUrl: finalData.modelUrl // Update marker's modelUrl
                 });
             } else if (formData.category === 'Relics/Artifacts') {
                 const targetRef = isEditMode
                     ? doc(db, "arTargets", assetToEdit.id)
                     : doc(collection(db, "arTargets"));
-                await setDoc(targetRef, updateArTargetData, { merge: true });
-
+                await setDoc(targetRef, updateArTargetData, { merge: true }); // Use setDoc with merge to update
+                // ⭐ MODIFIED: Update marker's artifact list
                 const artifactUpdate = {
                     arCameraSupported: true,
                 };
@@ -190,33 +186,22 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                     };
                 } else {
                     // If model is deleted, also remove it from marker's artifacts
-                    artifactUpdate[`artifacts.${targetRef.id}`] = null;
+                    artifactUpdate[`artifacts.${targetRef.id}`] = null; // Set to null to delete the field
                 }
                 await updateDoc(markerRef, artifactUpdate);
             }
 
             setStatusMessage("Cleaning up old files...");
-            // ⭐ MODIFIED: Clean up old file if a NEW file was uploaded OR if the URL was deleted
+            // ⭐ MODIFIED: Include old files for deletion if delete flag is true
             const filesToClean = [
-                (newImageUrl && oldFileUrls.image),
-                (newModelUrl && oldFileUrls.model),
-                (newVideoUrl && oldFileUrls.video),
-                (newAudioUrl && oldFileUrls.audio)
-            ];
+                (newImageUrl && oldFileUrls.image) || (filesToDelete.image && oldFileUrls.image),
+                (newModelUrl && oldFileUrls.model) || (filesToDelete.model && oldFileUrls.model),
+                (newVideoUrl && oldFileUrls.video) || (filesToDelete.video && oldFileUrls.video),
+                (newAudioUrl && oldFileUrls.audio) || (filesToDelete.audio && oldFileUrls.audio)
+            ].filter(Boolean);
 
-            // Add files deleted via the button to the cleanup list
-            if (isEditMode) {
-                if (assetToEdit.imageUrl && finalData.imageUrl === null) filesToClean.push(assetToEdit.imageUrl);
-                if (assetToEdit.modelUrl && finalData.modelUrl === null) filesToClean.push(assetToEdit.modelUrl);
-                if (assetToEdit.videoUrl && finalData.videoUrl === null) filesToClean.push(assetToEdit.videoUrl);
-                if (assetToEdit.audioUrl && finalData.audioUrl === null) filesToClean.push(assetToEdit.audioUrl);
-            }
-
-            const uniqueFilesToClean = filesToClean.filter(Boolean);
-
-
-            if (uniqueFilesToClean.length > 0) {
-                await Promise.all(uniqueFilesToClean.map(url => {
+            if (filesToClean.length > 0) {
+                await Promise.all(filesToClean.map(url => {
                     console.log("Deleting old file from storage:", url);
                     return deleteObject(ref(storage, url));
                 }));
@@ -232,21 +217,19 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
         }
     };
 
-    // ⭐ MODIFIED: renderFileInfo to include a delete button
-    const renderFileInfo = (fileUrl, fileType, fileUrlKey, fileInputName) => fileUrl && (
-        <div className="file-info-container">
-            <div className="file-info">
-                Current {fileType}: <a href={fileUrl} target="_blank" rel="noopener noreferrer">View File</a>
-            </div>
+    // ⭐ NEW: renderFileInfo now includes a delete checkbox
+    const renderFileInfo = (fileUrl, fileType, currentFilePropName) => fileUrl && (
+        <div className="file-info">
+            Current {fileType}: <a href={fileUrl} target="_blank" rel="noopener noreferrer">View File</a>
             {isEditMode && (
-                <button
-                    type="button"
-                    className="delete-file-btn"
-                    onClick={() => handleFileDelete(fileUrlKey, fileInputName)}
-                    disabled={isProcessing}
-                >
-                    Delete File
-                </button>
+                <label className="delete-checkbox-label">
+                    <input
+                        type="checkbox"
+                        checked={filesToDelete[currentFilePropName]}
+                        onChange={() => handleFileDeleteToggle(currentFilePropName)}
+                        disabled={isProcessing}
+                    /> Delete
+                </label>
             )}
         </div>
     );
@@ -274,21 +257,21 @@ const ARUploadModal = ({ markers, arAssets, assetToEdit, onClose }) => {
                     <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Enter a brief history or description..." required disabled={isProcessing}></textarea>
                 </label>
                 <label>Target Image: {isEditMode && <span className="label-hint">(replace current)</span>}
-                    {isEditMode && currentFileUrls.imageUrl && renderFileInfo(currentFileUrls.imageUrl, "Image", "imageUrl", "image")}
-                    <input type="file" name="image" accept="image/jpeg,image/png" onChange={handleFileChange} required={!isEditMode && !currentFileUrls.imageUrl} disabled={isProcessing} />
+                    {isEditMode && renderFileInfo(assetToEdit.imageUrl, "Image", "image")} {/* ⭐ MODIFIED: Pass 'image' for deletion */}
+                    <input type="file" name="image" accept="image/jpeg,image/png" onChange={handleFileChange} required={!isEditMode && !assetToEdit?.imageUrl} disabled={isProcessing || filesToDelete.image} />
                 </label>
                 <label>3D Model File (.glb): {isEditMode && <span className="label-hint">(replace current)</span>}
-                    {isEditMode && currentFileUrls.modelUrl && renderFileInfo(currentFileUrls.modelUrl, "Model", "modelUrl", "model")}
-                    <input type="file" name="model" accept=".glb,.gltf" onChange={handleFileChange} required={!isEditMode && !currentFileUrls.modelUrl} disabled={isProcessing} />
+                    {isEditMode && renderFileInfo(assetToEdit.modelUrl, "Model", "model")} {/* ⭐ MODIFIED: Pass 'model' for deletion */}
+                    <input type="file" name="model" accept=".glb,.gltf" onChange={handleFileChange} required={!isEditMode && !assetToEdit?.modelUrl} disabled={isProcessing || filesToDelete.model} />
                 </label>
                 <label>Video File (optional): {isEditMode && <span className="label-hint">(replace current)</span>}
-                    {isEditMode && currentFileUrls.videoUrl && renderFileInfo(currentFileUrls.videoUrl, "Video", "videoUrl", "videoFile")}
-                    <input type="file" name="videoFile" accept="video/mp4" onChange={handleFileChange} disabled={isProcessing} />
+                    {isEditMode && assetToEdit.videoUrl && renderFileInfo(assetToEdit.videoUrl, "Video", "video")} {/* ⭐ MODIFIED: Pass 'video' for deletion */}
+                    <input type="file" name="videoFile" accept="video/mp4" onChange={handleFileChange} disabled={isProcessing || filesToDelete.video} />
                 </label>
 
                 <label>Audio File (optional): {isEditMode && <span className="label-hint">(replace current)</span>}
-                    {isEditMode && currentFileUrls.audioUrl && renderFileInfo(currentFileUrls.audioUrl, "Audio", "audioUrl", "audioFile")}
-                    <input type="file" name="audioFile" accept="audio/mp3,audio/wav" onChange={handleFileChange} disabled={isProcessing} />
+                    {isEditMode && assetToEdit.audioUrl && renderFileInfo(assetToEdit.audioUrl, "Audio", "audio")} {/* ⭐ MODIFIED: Pass 'audio' for deletion */}
+                    <input type="file" name="audioFile" accept="audio/mp3,audio/wav" onChange={handleFileChange} disabled={isProcessing || filesToDelete.audio} />
                 </label>
 
                 <label>Target's Physical Width (meters):

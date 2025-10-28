@@ -135,6 +135,7 @@
 
 .delete-file-btn {
     background-color: #dc3545;
+    /* Red color for danger/delete action */
     color: white;
     padding: 0.3rem 0.6rem;
     border: none;
@@ -142,6 +143,7 @@
     font-size: 0.8rem;
     cursor: pointer;
     transition: background-color 0.2s;
+    /* Reset flex properties for buttons within this container */
     flex: none;
     margin-left: 10px;
 }
@@ -149,3 +151,5 @@
 .delete-file-btn:hover {
     background-color: #c82333;
 }
+
+/* ------------------------------------------- */

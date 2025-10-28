@@ -107,6 +107,8 @@
     margin-right: 8px;
 }
 
+/* ARPreviewModal.css */
+/* ... existing styles above ... */
 
 .preview-image,
 .preview-video,
@@ -116,7 +118,9 @@
     height: auto;
     border-radius: 6px;
     background-color: #f9f9f9;
+    /* ⭐ NEW: Style for the audio element */
     display: block;
+    /* Ensures it takes up the full width */
     margin-top: 10px;
 }
 

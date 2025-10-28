@@ -106,21 +106,3 @@
     color: #555;
     margin-right: 8px;
 }
-
-
-.preview-image,
-.preview-video,
-.preview-audio {
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    border-radius: 6px;
-    background-color: #f9f9f9;
-    display: block;
-    margin-top: 10px;
-}
-
-.preview-audio {
-    height: 50px;
-    min-height: 50px;
-}

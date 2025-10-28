@@ -142,6 +142,7 @@
     font-size: 0.8rem;
     cursor: pointer;
     transition: background-color 0.2s;
+    /* Reset flex properties for buttons within this container */
     flex: none;
     margin-left: 10px;
 }
@@ -149,3 +150,5 @@
 .delete-file-btn:hover {
     background-color: #c82333;
 }
+
+/* ------------------------------------------- */

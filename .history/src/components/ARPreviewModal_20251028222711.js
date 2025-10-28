@@ -52,6 +52,7 @@ const ARPreviewModal = ({ asset, onClose }) => {
                         </div>
                     )}
 
+                    {/* ⭐ NEW: Audio Player Section */}
                     {asset.audioUrl && (
                         <div className="preview-item">
                             <h3>Audio</h3>

@@ -107,6 +107,8 @@
     margin-right: 8px;
 }
 
+/* ARPreviewModal.css */
+/* ... existing styles above ... */
 
 .preview-image,
 .preview-video,
@@ -116,10 +118,14 @@
     height: auto;
     border-radius: 6px;
     background-color: #f9f9f9;
+    /* ⭐ NEW: Style for the audio element */
     display: block;
+    /* Ensures it takes up the full width */
     margin-top: 10px;
+    /* Space below the <h3>Audio</h3> title */
 }
 
+/* You may need this specific rule to ensure the audio element renders correctly across browsers */
 .preview-audio {
     height: 50px;
     min-height: 50px;
