@@ -39,10 +39,10 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
 
         const storageRef = ref(storage, `${fileType}/${Date.now()}_${file.name}`);
         const uploadTask = uploadBytesResumable(storageRef, file);
-
+f
         uploadTask.on(
             'state_changed',
-            (snapshot) => { },
+            (snapshot) => { /* Optional: handle progress */ },
             (error) => {
                 console.error(`Error uploading ${fileType}:`, error);
                 alert(`Error uploading ${fileType}.`);

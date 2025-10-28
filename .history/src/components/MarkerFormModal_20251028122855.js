@@ -42,7 +42,7 @@ const MarkerFormModal = ({ onCancel, loading, form, setForm, isEditing }) => {
 
         uploadTask.on(
             'state_changed',
-            (snapshot) => { },
+            (snapshot) => { /* Optional: handle progress */ },
             (error) => {
                 console.error(`Error uploading ${fileType}:`, error);
                 alert(`Error uploading ${fileType}.`);

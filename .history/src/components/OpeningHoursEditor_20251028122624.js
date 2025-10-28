@@ -6,6 +6,7 @@ const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'sat
 const OpeningHoursEditor = ({ value = {}, onChange }) => {
     const [copiedDay, setCopiedDay] = useState(null);
 
+    // MODIFIED: This function now handles time validation.
     const handleChange = (day, field, newTime) => {
         const dayData = value[day] || {};
         let updatedDayData = { ...dayData, [field]: newTime, closed: false };
