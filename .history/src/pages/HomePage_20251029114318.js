@@ -45,7 +45,7 @@ const HomePage = () => {
     }, []);
 
     const downloadApp = () => {
-        window.location.href = "https://firebasestorage.googleapis.com/v0/b/admin-login-244c5.firebasestorage.app/o/apk%2Fapp-release.apk?alt=media&token=c1601210-5020-4cf9-842b-d8ad0dd34c8a";
+        window.location.href = "gs://admin-login-244c5.firebasestorage.app/apk/app-release.apkhttps://firebasestorage.googleapis.com/v0/b/admin-login-244c5.firebasestorage.app/o/apk%2Fapp-release.apk?alt=media&token=c1601210-5020-4cf9-842b-d8ad0dd34c8a";
     }
     useEffect(() => {
         const fadeElements = document.querySelectorAll('.fade-in, .fade-in-up, .fade-in-left, .fade-in-right, .fade-in-zoom');
